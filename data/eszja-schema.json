@@ -1,0 +1,252 @@
+{
+  "2021": {
+    "equity_income_row": {
+      "id": "19. sor",
+      "form": "21SZJA-A lap",
+      "label_hu": "Egyéb jogcímen kapott jövedelem (13% SZOCHO, 89% adóalap)",
+      "label_en": "Other income — equity award (13% SZOCHO, 89% tax base)"
+    },
+    "equity_income_row_no_szocho": {
+      "id": "18. sor",
+      "form": "21SZJA-A lap",
+      "label_hu": "Egyéb jogcímen kapott jövedelem (SZOCHO nélkül)",
+      "label_en": "Other income — equity award (no SZOCHO)"
+    },
+    "etü_gain_row": {
+      "id": "172. sor d oszlop",
+      "form": "21SZJA-04-es lap",
+      "label_hu": "ETÜ jövedelem (nettó nyereség)",
+      "label_en": "Controlled capital market gain (net)"
+    },
+    "etü_loss_row": {
+      "id": "172. sor a oszlop",
+      "form": "21SZJA-04-es lap",
+      "label_hu": "ETÜ veszteség (deklarálandó az adókiegyenlítéshez!)",
+      "label_en": "ETÜ loss (must declare to preserve carry-forward)"
+    },
+    "etü_tax_row": {
+      "id": "172. sor e oszlop",
+      "form": "21SZJA-04-es lap",
+      "label_hu": "ETÜ adó (15% SZJA)",
+      "label_en": "ETÜ tax (15% SZJA)"
+    },
+    "etü_offset_rows": {
+      "ids": ["212", "213", "214", "216", "217", "218", "219", "220", "C75"],
+      "form": "21SZJA-06-os lap + C lap",
+      "label_hu": "Adókiegyenlítés (korábbi ETÜ veszteség levonása)",
+      "label_en": "Loss offset credit from prior ETÜ years"
+    },
+    "dividend_row": {
+      "id": "182. sor",
+      "form": "21SZJA-05-ös lap",
+      "label_hu": "Külföldről kapott osztalék",
+      "label_en": "Foreign dividend income"
+    },
+    "szocho_dividend_row": {
+      "id": "09-es lap",
+      "form": "09-es lap",
+      "label_hu": "SZOCHO bevallás (nem EGT részvény osztaléka után)",
+      "label_en": "SZOCHO declaration (non-EGT dividend)"
+    }
+  },
+  "2022": {
+    "equity_income_row": {
+      "id": "19. sor",
+      "form": "22SZJA-A lap",
+      "label_hu": "Egyéb jogcímen kapott jövedelem (13% SZOCHO, 89% adóalap)",
+      "label_en": "Other income — equity award (13% SZOCHO, 89% tax base)"
+    },
+    "equity_income_row_no_szocho": {
+      "id": "18. sor",
+      "form": "22SZJA-A lap",
+      "label_hu": "Egyéb jogcímen kapott jövedelem (SZOCHO nélkül)",
+      "label_en": "Other income — equity award (no SZOCHO)"
+    },
+    "etü_gain_row": {
+      "id": "172. sor d oszlop",
+      "form": "22SZJA-04-es lap",
+      "label_hu": "ETÜ jövedelem (nettó nyereség)",
+      "label_en": "Controlled capital market gain (net)"
+    },
+    "etü_loss_row": {
+      "id": "172. sor a oszlop",
+      "form": "22SZJA-04-es lap",
+      "label_hu": "ETÜ veszteség (deklarálandó az adókiegyenlítéshez!)",
+      "label_en": "ETÜ loss (must declare to preserve carry-forward)"
+    },
+    "etü_tax_row": {
+      "id": "172. sor e oszlop",
+      "form": "22SZJA-04-es lap",
+      "label_hu": "ETÜ adó (15% SZJA)",
+      "label_en": "ETÜ tax (15% SZJA)"
+    },
+    "etü_offset_rows": {
+      "ids": ["212", "213", "214", "216", "217", "218", "219", "220", "C75"],
+      "form": "22SZJA-06-os lap + C lap",
+      "label_hu": "Adókiegyenlítés (korábbi ETÜ veszteség levonása)",
+      "label_en": "Loss offset credit from prior ETÜ years"
+    },
+    "dividend_row": {
+      "id": "182. sor",
+      "form": "22SZJA-05-ös lap",
+      "label_hu": "Külföldről kapott osztalék",
+      "label_en": "Foreign dividend income"
+    },
+    "szocho_dividend_row": {
+      "id": "09-es lap",
+      "form": "09-es lap",
+      "label_hu": "SZOCHO bevallás (nem EGT részvény osztaléka után)",
+      "label_en": "SZOCHO declaration (non-EGT dividend)"
+    }
+  },
+  "2023": {
+    "equity_income_row": {
+      "id": "19. sor",
+      "form": "23SZJA-A lap",
+      "label_hu": "Egyéb jogcímen kapott jövedelem (13% SZOCHO, 89% adóalap)",
+      "label_en": "Other income — equity award (13% SZOCHO, 89% tax base)"
+    },
+    "equity_income_row_no_szocho": {
+      "id": "18. sor",
+      "form": "23SZJA-A lap",
+      "label_hu": "Egyéb jogcímen kapott jövedelem (SZOCHO nélkül)",
+      "label_en": "Other income — equity award (no SZOCHO)"
+    },
+    "etü_gain_row": {
+      "id": "172. sor d oszlop",
+      "form": "23SZJA-04-es lap",
+      "label_hu": "ETÜ jövedelem (nettó nyereség)",
+      "label_en": "Controlled capital market gain (net)"
+    },
+    "etü_loss_row": {
+      "id": "172. sor a oszlop",
+      "form": "23SZJA-04-es lap",
+      "label_hu": "ETÜ veszteség (deklarálandó az adókiegyenlítéshez!)",
+      "label_en": "ETÜ loss (must declare to preserve carry-forward)"
+    },
+    "etü_tax_row": {
+      "id": "172. sor e oszlop",
+      "form": "23SZJA-04-es lap",
+      "label_hu": "ETÜ adó (15% SZJA)",
+      "label_en": "ETÜ tax (15% SZJA)"
+    },
+    "etü_offset_rows": {
+      "ids": ["212", "213", "214", "216", "217", "218", "219", "220", "C75"],
+      "form": "23SZJA-06-os lap + C lap",
+      "label_hu": "Adókiegyenlítés (korábbi ETÜ veszteség levonása)",
+      "label_en": "Loss offset credit from prior ETÜ years"
+    },
+    "dividend_row": {
+      "id": "182. sor",
+      "form": "23SZJA-05-ös lap",
+      "label_hu": "Külföldről kapott osztalék",
+      "label_en": "Foreign dividend income"
+    },
+    "szocho_dividend_row": {
+      "id": "09-es lap",
+      "form": "09-es lap",
+      "label_hu": "SZOCHO bevallás (nem EGT részvény osztaléka után)",
+      "label_en": "SZOCHO declaration (non-EGT dividend)"
+    }
+  },
+  "2024": {
+    "equity_income_row": {
+      "id": "19. sor",
+      "form": "24SZJA-A lap",
+      "label_hu": "Egyéb jogcímen kapott jövedelem (13% SZOCHO, 89% adóalap)",
+      "label_en": "Other income — equity award (13% SZOCHO, 89% tax base)"
+    },
+    "equity_income_row_no_szocho": {
+      "id": "18. sor",
+      "form": "24SZJA-A lap",
+      "label_hu": "Egyéb jogcímen kapott jövedelem (SZOCHO nélkül)",
+      "label_en": "Other income — equity award (no SZOCHO)"
+    },
+    "etü_gain_row": {
+      "id": "172. sor d oszlop",
+      "form": "24SZJA-04-es lap",
+      "label_hu": "ETÜ jövedelem (nettó nyereség)",
+      "label_en": "Controlled capital market gain (net)"
+    },
+    "etü_loss_row": {
+      "id": "172. sor a oszlop",
+      "form": "24SZJA-04-es lap",
+      "label_hu": "ETÜ veszteség (deklarálandó az adókiegyenlítéshez!)",
+      "label_en": "ETÜ loss (must declare to preserve carry-forward)"
+    },
+    "etü_tax_row": {
+      "id": "172. sor e oszlop",
+      "form": "24SZJA-04-es lap",
+      "label_hu": "ETÜ adó (15% SZJA)",
+      "label_en": "ETÜ tax (15% SZJA)"
+    },
+    "etü_offset_rows": {
+      "ids": ["212", "213", "214", "216", "217", "218", "219", "220", "C75"],
+      "form": "24SZJA-06-os lap + C lap",
+      "label_hu": "Adókiegyenlítés (korábbi ETÜ veszteség levonása)",
+      "label_en": "Loss offset credit from prior ETÜ years"
+    },
+    "dividend_row": {
+      "id": "182. sor",
+      "form": "24SZJA-05-ös lap",
+      "label_hu": "Külföldről kapott osztalék",
+      "label_en": "Foreign dividend income"
+    },
+    "szocho_dividend_row": {
+      "id": "09-es lap",
+      "form": "09-es lap",
+      "label_hu": "SZOCHO bevallás (nem EGT részvény osztaléka után)",
+      "label_en": "SZOCHO declaration (non-EGT dividend)"
+    }
+  },
+  "2025": {
+    "equity_income_row": {
+      "id": "19. sor",
+      "form": "25SZJA-A lap",
+      "label_hu": "Egyéb jogcímen kapott jövedelem (13% SZOCHO, 89% adóalap)",
+      "label_en": "Other income — equity award (13% SZOCHO, 89% tax base)"
+    },
+    "equity_income_row_no_szocho": {
+      "id": "18. sor",
+      "form": "25SZJA-A lap",
+      "label_hu": "Egyéb jogcímen kapott jövedelem (SZOCHO nélkül)",
+      "label_en": "Other income — equity award (no SZOCHO)"
+    },
+    "etü_gain_row": {
+      "id": "172. sor d oszlop",
+      "form": "25SZJA-04-es lap",
+      "label_hu": "ETÜ jövedelem (nettó nyereség)",
+      "label_en": "Controlled capital market gain (net)"
+    },
+    "etü_loss_row": {
+      "id": "172. sor a oszlop",
+      "form": "25SZJA-04-es lap",
+      "label_hu": "ETÜ veszteség (deklarálandó az adókiegyenlítéshez!)",
+      "label_en": "ETÜ loss (must declare to preserve carry-forward)"
+    },
+    "etü_tax_row": {
+      "id": "172. sor e oszlop",
+      "form": "25SZJA-04-es lap",
+      "label_hu": "ETÜ adó (15% SZJA)",
+      "label_en": "ETÜ tax (15% SZJA)"
+    },
+    "etü_offset_rows": {
+      "ids": ["212", "213", "214", "216", "217", "218", "219", "220", "C75"],
+      "form": "25SZJA-06-os lap + C lap",
+      "label_hu": "Adókiegyenlítés (korábbi ETÜ veszteség levonása)",
+      "label_en": "Loss offset credit from prior ETÜ years"
+    },
+    "dividend_row": {
+      "id": "182. sor",
+      "form": "25SZJA-05-ös lap",
+      "label_hu": "Külföldről kapott osztalék",
+      "label_en": "Foreign dividend income"
+    },
+    "szocho_dividend_row": {
+      "id": "09-es lap",
+      "form": "09-es lap",
+      "label_hu": "SZOCHO bevallás (nem EGT részvény osztaléka után)",
+      "label_en": "SZOCHO declaration (non-EGT dividend)"
+    }
+  }
+}

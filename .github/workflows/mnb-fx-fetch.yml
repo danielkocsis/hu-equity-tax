@@ -1,0 +1,139 @@
+name: Fetch MNB FX Rates
+
+on:
+  schedule:
+    # Run at 18:00 UTC Mon–Fri (MNB publishes ~16:00 CET on business days)
+    - cron: '0 18 * * 1-5'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  fetch-fx:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Fetch MNB FX rates
+        run: |
+          python3 << 'PYEOF'
+          import urllib.request
+          import xml.etree.ElementTree as ET
+          import json
+          import os
+          import sys
+          from datetime import date
+
+          today = date.today().isoformat()
+          year = today[:4]
+          data_file = f"data/mnb_fx_{year}.json"
+
+          # Load existing data or start fresh
+          existing = {}
+          if os.path.exists(data_file):
+              with open(data_file, "r", encoding="utf-8") as f:
+                  try:
+                      existing = json.load(f)
+                  except json.JSONDecodeError:
+                      existing = {}
+
+          # Build SOAP request
+          soap_body = f"""<?xml version="1.0" encoding="utf-8"?>
+          <soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">
+            <soap:Body>
+              <GetExchangeRates xmlns="http://www.mnb.hu/webservices/">
+                <startDate>{today}</startDate>
+                <endDate>{today}</endDate>
+                <currencyNames>USD,EUR,GBP</currencyNames>
+              </GetExchangeRates>
+            </soap:Body>
+          </soap:Envelope>""".encode("utf-8")
+
+          url = "http://www.mnb.hu/arfolyamok.asmx"
+          headers = {
+              "Content-Type": "text/xml; charset=utf-8",
+              "SOAPAction": '"http://www.mnb.hu/webservices/MNBArfolyamServiceSoap/GetExchangeRates"',
+          }
+
+          try:
+              req = urllib.request.Request(url, data=soap_body, headers=headers, method="POST")
+              with urllib.request.urlopen(req, timeout=30) as resp:
+                  raw = resp.read()
+          except Exception as e:
+              print(f"MNB request failed: {e}")
+              print("This is expected on weekends and holidays — no data published. Exiting cleanly.")
+              sys.exit(0)
+
+          # Parse XML response
+          try:
+              root = ET.fromstring(raw)
+          except ET.ParseError as e:
+              print(f"XML parse error: {e}")
+              sys.exit(0)
+
+          ns = {
+              "soap": "http://schemas.xmlsoap.org/soap/envelope/",
+              "mnb": "http://www.mnb.hu/webservices/",
+          }
+
+          # The response contains an inner XML string — extract it
+          result_el = root.find(".//mnb:GetExchangeRatesResult", ns)
+          if result_el is None or not result_el.text:
+              print("No GetExchangeRatesResult in response. MNB may not have published rates today.")
+              sys.exit(0)
+
+          inner_xml = result_el.text.strip()
+          try:
+              inner_root = ET.fromstring(inner_xml)
+          except ET.ParseError as e:
+              print(f"Inner XML parse error: {e}")
+              sys.exit(0)
+
+          # Parse Day elements
+          updated = False
+          for day_el in inner_root.findall(".//Day"):
+              day_date = day_el.get("date")
+              if not day_date:
+                  continue
+              rates = {}
+              for rate_el in day_el.findall("Rate"):
+                  curr = rate_el.get("curr")
+                  text = (rate_el.text or "").strip().replace(",", ".")
+                  try:
+                      rates[curr] = float(text)
+                  except ValueError:
+                      pass
+              if rates:
+                  if day_date not in existing or existing[day_date] != rates:
+                      existing[day_date] = rates
+                      updated = True
+                  print(f"Rates for {day_date}: {rates}")
+
+          if not updated:
+              print("No new rates to write.")
+              sys.exit(0)
+
+          os.makedirs("data", exist_ok=True)
+          # Sort by date for clean diffs
+          sorted_data = dict(sorted(existing.items()))
+          with open(data_file, "w", encoding="utf-8") as f:
+              json.dump(sorted_data, f, indent=2, ensure_ascii=False)
+              f.write("
+")
+
+          print(f"Updated {data_file} with {len(existing)} entries.")
+          PYEOF
+
+      - name: Commit updated FX data
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add data/mnb_fx_*.json
+          if git diff --cached --quiet; then
+            echo "No changes to commit."
+          else
+            git commit -m "chore: update MNB FX rates [skip ci]"
+            git push
+          fi

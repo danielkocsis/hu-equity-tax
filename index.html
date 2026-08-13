@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Részvényadó Kalkulátor — Equity Tax Calculator: free, open-source calculator for Hungarian equity tax self-declaration">
+  <title>Részvényadó Kalkulátor / Equity Tax Calculator</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+  <!-- ====== Header ====== -->
+  <header class="app-header" role="banner">
+    <div class="app-wrapper">
+      <div class="app-branding">
+        <h1 data-i18n="nav.title">Részvényadó Kalkulátor</h1>
+        <p data-i18n="nav.subtitle">Segítség a külföldi részvényjuttatások magyar adózásához</p>
+      </div>
+      <div class="header-controls">
+        <button id="mode-toggle" type="button" aria-pressed="false" data-i18n="mode.current">Folyó év</button>
+        <button id="lang-toggle" type="button" aria-label="Switch to English">EN</button>
+      </div>
+    </div>
+    <!-- Disclaimer banner — permanent, non-dismissible (SPEC §6.10) -->
+    <div class="disclaimer-banner" role="note" aria-label="Disclaimer">
+      <span data-i18n="disclaimer">Ez az eszköz ingyenes, nyílt forráskódú számológép, nem adótanácsadás. Az eredmények pontossága kizárólag a megadott adatokon múlik. Az adóbevallásért és az adófizetésért kizárólag az adózó felel. Könyvelő megerősítése javasolt.</span>
+    </div>
+  </header>
+
+  <!-- ====== Main content ====== -->
+  <main>
+    <div class="app-wrapper">
+
+      <!-- Section 1: Year selector + mode indicator (SPEC §6.1) -->
+      <section id="year-selector" class="app-section">
+        <div class="mode-bar">
+          <div id="current-year-indicator">
+            <!-- Populated by app.js -->
+          </div>
+          <div id="onellenorzes-year-wrap" class="year-selector-wrap hidden">
+            <label for="onellenorzes-year-select" data-i18n="year.selector.label">Adóév:</label>
+            <select id="onellenorzes-year-select" aria-label="Tax year">
+              <option value="2021">2021</option>
+              <option value="2022">2022</option>
+              <option value="2023">2023</option>
+              <option value="2024">2024</option>
+              <option value="2025">2025</option>
+            </select>
+          </div>
+        </div>
+      </section>
+
+      <!-- Section 2: Add Event form (SPEC §6.3) -->
+      <section id="add-event" class="app-section" aria-label="Add event">
+        <h2 class="section-heading" data-i18n="section.add_event">Esemény hozzáadása</h2>
+        <!-- Populated by ui/transaction-form.js -->
+        <div id="transaction-form-mount"></div>
+      </section>
+
+      <!-- Section 3: Transaction ledger (SPEC §6.4) -->
+      <section id="ledger" class="app-section" aria-label="Ledger">
+        <h2 class="section-heading" data-i18n="section.ledger">Tranzakciónapló</h2>
+        <!-- Populated by ui/ledger-table.js -->
+        <div id="ledger-table-mount"></div>
+      </section>
+
+      <!-- Section 4: Results per tax year (SPEC §6.5) -->
+      <section id="results" class="app-section" aria-label="Results">
+        <h2 class="section-heading" data-i18n="section.results">Számítási eredmények</h2>
+        <!-- Populated by ui/results-panel.js -->
+        <div id="results-panel-mount"></div>
+      </section>
+
+      <!-- Section 5: eSZJA mapper (SPEC §6.6) -->
+      <section id="eszja-map" class="app-section" aria-label="eSZJA mapping">
+        <h2 class="section-heading" data-i18n="section.eszja_map">eSZJA kitöltési útmutató</h2>
+        <!-- Populated by ui/results-panel.js (sub-section) -->
+        <div id="eszja-map-mount"></div>
+      </section>
+
+      <!-- Section 6a: Quarterly advance (current year mode only) (SPEC §6.7) -->
+      <section id="advance" class="app-section" aria-label="Quarterly advance">
+        <h2 class="section-heading" data-i18n="section.advance">Negyedéves előleg</h2>
+        <!-- Populated by ui/advance-panel.js -->
+        <div id="advance-panel-mount"></div>
+      </section>
+
+      <!-- Section 6b: Self-audit panel (önellenőrzés mode only) (SPEC §6.8) -->
+      <section id="self-audit" class="app-section hidden" aria-label="Self-audit">
+        <h2 class="section-heading" data-i18n="section.self_audit">Önellenőrzés</h2>
+        <!-- Populated by ui/self-audit-panel.js -->
+        <div id="self-audit-panel-mount"></div>
+      </section>
+
+      <!-- Section 7: NAV payment cards (SPEC §6.9) -->
+      <section id="payment" class="app-section" aria-label="NAV payment guide">
+        <h2 class="section-heading" data-i18n="section.payment">NAV befizetési útmutató</h2>
+        <!-- Populated by ui/payment-guide.js -->
+        <div id="payment-guide-mount"></div>
+      </section>
+
+    </div><!-- /.app-wrapper -->
+  </main>
+
+  <!-- ====== Footer ====== -->
+  <footer class="app-footer" role="contentinfo">
+    <div class="app-wrapper">
+      <div class="footer-links">
+        <a href="https://nav.gov.hu" target="_blank" rel="noopener noreferrer" data-i18n="footer.links.nav">NAV</a>
+        <a href="https://www.mnb.hu/arfolyamok" target="_blank" rel="noopener noreferrer" data-i18n="footer.links.mnb">MNB árfolyamok</a>
+        <a href="https://net.jogtar.hu/jogszabaly?docid=99500117.TV" target="_blank" rel="noopener noreferrer" data-i18n="footer.links.szja_tv">Szja tv.</a>
+      </div>
+      <button id="clear-data-btn" class="btn btn-danger btn-sm" type="button" data-i18n="footer.clear_data">
+        Összes adat törlése
+      </button>
+      <p class="footer-copyright" data-i18n="footer.copyright">
+        Ingyenesen használható személyes adószámításhoz. Kereskedelmi terjesztés tilos. © danielkocsis, CC BY-NC 4.0.
+      </p>
+    </div>
+  </footer>
+
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>
