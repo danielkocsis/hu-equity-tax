@@ -13,8 +13,15 @@
   <header class="app-header" role="banner">
     <div class="app-wrapper">
       <div class="app-branding">
-        <h1 data-i18n="nav.title">Részvényadó Kalkulátor</h1>
-        <p data-i18n="nav.subtitle">Segítség a külföldi részvényjuttatások magyar adózásához</p>
+        <div class="brand-icon" aria-hidden="true">
+          <svg viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+            <path d="M10 2a8 8 0 100 16A8 8 0 0010 2zm.75 4.5v1.25h1.5a.75.75 0 010 1.5h-1.5v1h1.5a.75.75 0 010 1.5h-1.5V13a.75.75 0 01-1.5 0v-1.25H7.75a.75.75 0 010-1.5h1.5v-1h-1.5a.75.75 0 010-1.5h1.5V6.5a.75.75 0 011.5 0z"/>
+          </svg>
+        </div>
+        <div class="brand-text">
+          <h1 data-i18n="nav.title">Részvényadó Kalkulátor</h1>
+          <p data-i18n="nav.subtitle">Segítség a külföldi részvényjuttatások magyar adózásához</p>
+        </div>
       </div>
       <div class="header-controls">
         <button id="mode-toggle" type="button" aria-pressed="false" data-i18n="mode.current">Folyó év</button>
@@ -23,7 +30,10 @@
     </div>
     <!-- Disclaimer banner — permanent, non-dismissible (SPEC §6.10) -->
     <div class="disclaimer-banner" role="note" aria-label="Disclaimer">
-      <span data-i18n="disclaimer">Ez az eszköz ingyenes, nyílt forráskódú számológép, nem adótanácsadás. Az eredmények pontossága kizárólag a megadott adatokon múlik. Az adóbevallásért és az adófizetésért kizárólag az adózó felel. Könyvelő megerősítése javasolt.</span>
+      <div class="app-wrapper">
+        <span class="disclaimer-icon" aria-hidden="true">⚠</span>
+        <span data-i18n="disclaimer">Ez az eszköz ingyenes, nyílt forráskódú számológép, nem adótanácsadás. Az eredmények pontossága kizárólag a megadott adatokon múlik. Az adóbevallásért és az adófizetésért kizárólag az adózó felel. Könyvelő megerősítése javasolt.</span>
+      </div>
     </div>
   </header>
 
