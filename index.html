@@ -26,6 +26,16 @@
 
       <div class="header-controls">
         <button id="mode-toggle" type="button" aria-pressed="false" data-i18n="mode.current">Folyó év</button>
+        <select id="year-select" aria-label="Tax year">
+          <option value="2019">2019</option>
+          <option value="2020">2020</option>
+          <option value="2021">2021</option>
+          <option value="2022">2022</option>
+          <option value="2023">2023</option>
+          <option value="2024">2024</option>
+          <option value="2025">2025</option>
+          <option value="2026">2026</option>
+        </select>
         <button id="lang-toggle" type="button" aria-label="Switch to English">
           <span aria-hidden="true">🇬🇧</span>
         </button>
@@ -46,23 +56,6 @@
   <!-- Main -->
   <main>
     <div class="app-wrapper">
-
-      <!-- §1 Year / mode indicator -->
-      <section id="year-selector" class="app-section">
-        <div class="mode-bar">
-          <div id="current-year-indicator" class="year-badge"></div>
-          <div id="onellenorzes-year-wrap" class="year-selector-wrap hidden">
-            <label for="onellenorzes-year-select" data-i18n="year.selector.label">Adóév</label>
-            <select id="onellenorzes-year-select">
-              <option value="2021">2021</option>
-              <option value="2022">2022</option>
-              <option value="2023">2023</option>
-              <option value="2024">2024</option>
-              <option value="2025">2025</option>
-            </select>
-          </div>
-        </div>
-      </section>
 
       <!-- §2 Add event form -->
       <section id="add-event" class="app-section">

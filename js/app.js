@@ -10,15 +10,17 @@ import { clear as clearLedger } from './ledger.js';
 import { clearOverrides } from './fx-engine.js';
 
 const MODE_KEY = 'hu_equity_tax_mode';
+const YEAR_KEY = 'hu_equity_tax_year';
 const ADOID_KEY = 'hu_equity_tax_adoid';
 
 /** @type {'current'|'onellenorzes'} */
 let currentMode = 'current';
-/** @type {number} */
+
+/** @type {number} — always driven by #year-select */
 let currentYear = new Date().getFullYear();
 
 /**
- * Returns the selected tax year based on current mode.
+ * Returns the currently selected tax year.
  * @returns {number}
  */
 export function getSelectedYear() {
@@ -34,7 +36,8 @@ export function getMode() {
 }
 
 /**
- * Switches to a new mode, persists it, and re-renders relevant sections.
+ * Switches app mode (current year / önellenőrzés).
+ * Year is NOT changed here — it is always driven by #year-select.
  * @param {'current'|'onellenorzes'} mode
  */
 function applyMode(mode) {
@@ -43,37 +46,44 @@ function applyMode(mode) {
 
   const advanceSection = document.getElementById('advance');
   const selfAuditSection = document.getElementById('self-audit');
-  const onellenorzesWrap = document.getElementById('onellenorzes-year-wrap');
-  const currentYearIndicator = document.getElementById('current-year-indicator');
   const modeToggleBtn = document.getElementById('mode-toggle');
 
   if (mode === 'current') {
-    currentYear = new Date().getFullYear();
     advanceSection?.classList.remove('hidden');
     selfAuditSection?.classList.add('hidden');
-    onellenorzesWrap?.classList.add('hidden');
-    if (currentYearIndicator) {
-      currentYearIndicator.textContent = `${currentYear}`;
-    }
     modeToggleBtn?.setAttribute('aria-pressed', 'false');
   } else {
-    // önellenőrzés: read selected year from dropdown
-    const select = document.getElementById('onellenorzes-year-select');
-    if (select) {
-      currentYear = parseInt(select.value, 10);
-    }
     advanceSection?.classList.add('hidden');
     selfAuditSection?.classList.remove('hidden');
-    onellenorzesWrap?.classList.remove('hidden');
-    if (currentYearIndicator) {
-      currentYearIndicator.textContent = '';
-    }
     modeToggleBtn?.setAttribute('aria-pressed', 'true');
   }
 
-  // Dispatch event so UI panels can re-render
   document.dispatchEvent(new CustomEvent('mode:changed', { detail: { mode, year: currentYear } }));
-  document.dispatchEvent(new CustomEvent('ledger:changed'));
+}
+
+/**
+ * Wires the header year selector.
+ * Persists the chosen year, updates currentYear, and triggers re-render.
+ */
+function initYearSelect() {
+  const select = document.getElementById('year-select');
+  if (!select) return;
+
+  // Populate default: restore from localStorage, else current calendar year.
+  const saved = parseInt(localStorage.getItem(YEAR_KEY) ?? '', 10);
+  const defaultYear = !isNaN(saved) && select.querySelector(`option[value="${saved}"]`)
+    ? saved
+    : new Date().getFullYear();
+
+  select.value = String(defaultYear);
+  currentYear = defaultYear;
+
+  select.addEventListener('change', () => {
+    currentYear = parseInt(select.value, 10);
+    localStorage.setItem(YEAR_KEY, String(currentYear));
+    document.dispatchEvent(new CustomEvent('mode:changed', { detail: { mode: currentMode, year: currentYear } }));
+    document.dispatchEvent(new CustomEvent('ledger:changed'));
+  });
 }
 
 /**
@@ -87,34 +97,18 @@ function initModeToggle() {
     const next = currentMode === 'current' ? 'onellenorzes' : 'current';
     applyMode(next);
     renderAll();
-  });
-}
-
-/**
- * Wires the önellenőrzés year selector.
- */
-function initYearSelector() {
-  const select = document.getElementById('onellenorzes-year-select');
-  if (!select) return;
-
-  select.addEventListener('change', () => {
-    currentYear = parseInt(select.value, 10);
-    document.dispatchEvent(new CustomEvent('mode:changed', { detail: { mode: currentMode, year: currentYear } }));
     document.dispatchEvent(new CustomEvent('ledger:changed'));
   });
 }
 
 /**
- * Wires the "Clear all data" button in the footer.
- * Uses a two-step in-page confirmation to avoid confirm() (blocked by AGENTS.md).
- * First click: reveals an inline warning + confirm button.
- * Second click (confirm): clears all data and reloads.
+ * Wires the "Clear all data" footer button.
+ * Two-step in-page confirmation — no confirm() (blocked by AGENTS.md).
  */
 function initClearData() {
   const btn = document.getElementById('clear-data-btn');
   if (!btn) return;
 
-  // Build inline confirm UI (hidden by default)
   const confirmEl = document.createElement('span');
   confirmEl.id = 'clear-data-confirm';
   confirmEl.style.cssText = 'display:none;align-items:center;gap:0.5rem;margin-left:0.5rem';
@@ -134,12 +128,9 @@ function initClearData() {
   confirmEl.append(confirmMsg, confirmBtn, cancelBtn);
   btn.after(confirmEl);
 
-  /** Renders confirm strip in the current language. */
   function renderConfirmStrip() {
     const hu = getLang() === 'hu';
-    confirmMsg.textContent = hu
-      ? 'Biztosan törli az összes adatot?'
-      : 'Delete all saved data?';
+    confirmMsg.textContent = hu ? 'Biztosan törli az összes adatot?' : 'Delete all saved data?';
     confirmBtn.textContent = hu ? 'Igen, törlés' : 'Yes, delete';
     cancelBtn.textContent = hu ? 'Mégsem' : 'Cancel';
   }
@@ -155,6 +146,7 @@ function initClearData() {
     clearOverrides();
     localStorage.removeItem(ADOID_KEY);
     localStorage.removeItem(MODE_KEY);
+    localStorage.removeItem(YEAR_KEY);
     window.location.reload();
   });
 
@@ -163,39 +155,35 @@ function initClearData() {
     btn.style.display = '';
   });
 
-  // Re-render confirm text when language switches
   document.addEventListener('lang:changed', () => {
     if (confirmEl.style.display !== 'none') renderConfirmStrip();
   });
 }
 
 /**
- * Main bootstrap — called on DOMContentLoaded.
+ * Main bootstrap.
  */
 async function init() {
-  // 1. Load language (restores from localStorage automatically in i18n.js)
+  // 1. Language
   const lang = localStorage.getItem('hu_equity_tax_lang') ?? 'hu';
   await loadLang(lang);
   renderAll();
 
-  // 2. Initialise language toggle
+  // 2. Lang toggle
   initLangToggle();
 
-  // 3. Restore mode from localStorage
-  const savedMode = localStorage.getItem(MODE_KEY);
-  if (savedMode === 'onellenorzes') {
-    applyMode('onellenorzes');
-  } else {
-    applyMode('current');
-  }
+  // 3. Year selector (must run before applyMode so currentYear is set)
+  initYearSelect();
 
-  // 4. Initialise UI controls
+  // 4. Mode (restore persisted, default current)
+  const savedMode = localStorage.getItem(MODE_KEY);
+  applyMode(savedMode === 'onellenorzes' ? 'onellenorzes' : 'current');
+
+  // 5. Other controls
   initModeToggle();
-  initYearSelector();
   initClearData();
 
-  // 5. Lazily initialise UI modules (they register their own event listeners)
-  // These imports are deferred so scaffold + i18n work without UI modules present
+  // 6. UI modules (stubs for tickets 008–012)
   const uiModules = await Promise.allSettled([
     import('./ui/transaction-form.js').then(m => m.initTransactionForm?.()),
     import('./ui/ledger-table.js').then(m => m.initLedgerTable?.()),
@@ -205,14 +193,13 @@ async function init() {
     import('./ui/payment-guide.js').then(m => m.initPaymentGuide?.()),
   ]);
 
-  // Log any module failures (non-fatal in scaffold stage)
   uiModules.forEach((result, i) => {
     if (result.status === 'rejected') {
       console.warn(`[app] UI module ${i} failed to load:`, result.reason);
     }
   });
 
-  // 6. Trigger initial render — deferred so dynamic imports finish registering listeners first.
+  // 7. Initial render — deferred so dynamic imports finish registering first
   setTimeout(() => document.dispatchEvent(new CustomEvent('ledger:changed')), 0);
 }
 

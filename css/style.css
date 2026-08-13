@@ -229,48 +229,6 @@ main .app-wrapper {
   margin-top: calc(-1 * var(--s6)); /* collapsed by parent gap */
 }
 
-/* ── Mode / year bar ───────────────────────────────────── */
-.mode-bar {
-  display: flex;
-  align-items: center;
-  gap: var(--s2);
-  flex-wrap: wrap;
-}
-
-.year-badge {
-  font-size: var(--t-3xl);
-  font-weight: 800;
-  color: var(--n900);
-  letter-spacing: -0.05em;
-  line-height: 1;
-}
-
-.mode-chip {
-  display: inline-flex;
-  align-items: center;
-  font-size: var(--t-xs);
-  font-weight: 600;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  color: var(--accent);
-  background: var(--accent-subtle);
-  border: 1px solid var(--accent-border);
-  border-radius: var(--r-pill);
-  padding: 2px 10px;
-}
-
-.year-selector-wrap {
-  display: flex;
-  align-items: center;
-  gap: var(--s1);
-}
-
-.year-selector-wrap label {
-  font-size: var(--t-sm);
-  color: var(--n500);
-  font-weight: 500;
-}
-
 /* ── Buttons ───────────────────────────────────────────── */
 button, .btn {
   display: inline-flex;
@@ -385,6 +343,36 @@ button:focus-visible, .btn:focus-visible { box-shadow: var(--shadow-focus); }
   color: var(--accent);
 }
 #mode-toggle[aria-pressed="true"]::before { background: var(--accent); }
+
+#year-select {
+  appearance: none;
+  -webkit-appearance: none;
+  font-family: var(--sans);
+  font-size: var(--t-sm);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--n700);
+  background: var(--n100)
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='5'%3E%3Cpath d='M0 0l4 5 4-5z' fill='%2394a3b8'/%3E%3C/svg%3E")
+    no-repeat right 8px center;
+  border: 1px solid var(--n200);
+  border-radius: var(--r-pill);
+  padding: 0.3rem 1.75rem 0.3rem 0.75rem;
+  cursor: pointer;
+  outline: none;
+  transition: background-color var(--fast) var(--ease), border-color var(--fast) var(--ease);
+  line-height: 1;
+}
+
+#year-select:hover {
+  background-color: var(--n200);
+  border-color: var(--n300);
+}
+
+#year-select:focus-visible {
+  border-color: var(--accent);
+  box-shadow: var(--shadow-focus);
+}
 
 /* ── Forms ─────────────────────────────────────────────── */
 .form-grid {
