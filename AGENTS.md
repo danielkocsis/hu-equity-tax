@@ -14,26 +14,16 @@ A free, 100% client-side static SPA (GitHub Pages) that helps Hungarian tax subj
 
 ## Defensive Design Principle
 
-> **The app is a calculation aid, not a tax solution. It must never overstate its own authority.**
+> Full UX rules and rationale: **SPEC.md §6.1a**. The three agent-enforcement rules below are the coding mandates.
 
-This principle governs every feature decision:
+1. **Every computed tax value shown to the user must display its legal basis** with a clickable link to the relevant paragraph on net.jogtar.hu or the NAV rate page. No number without a legal citation. See TAX-ANALYSIS.md for all paragraph references and URLs.
 
-1. **Cite the law, not just the result.** Every tax rule shown to the user must link to the relevant Szja tv. / Szoctv. / Art. tv. paragraph on net.jogtar.hu. Users must be able to read the primary source themselves. See `TAX-ANALYSIS.md` for the canonical paragraph references.
+2. **Never silently approximate.** If a scenario exceeds the app's modelling scope (e.g. multi-year önellenőrzés adókiegyenlítés cascade), show a named boundary and direct the user to a tax adviser. Do not guess. If NAV has an official calculator for a value, link to it as the primary action — the in-app figure is always labelled *"Tájékoztató összeg / Indicative estimate"*.
+   - NAV Pótlékszámítás (késedelmi + önellenőrzési pótlék): `https://nav.gov.hu/ugyfeliranytu/eljarasi_kerdesek/Kalkulatorok/potlekszamitas`
 
-2. **Prefer useful and correct over comprehensive and risky.** If a scenario is too complex to model correctly (e.g. multi-year önellenőrzés adókiegyenlítés cascade), show a clear explanation of what the app can calculate and direct the user to a tax adviser. Do not guess or approximate silently.
-
-3. **Show your working.** Every computed number must be decomposable — the user can see the formula, the inputs, and the legal basis. No black-box results.
-
-4. **Warn early, not late.** If a transaction has characteristics that affect correctness (US equity post-2024, EGT vs non-EGT dividend, önellenőrzés with adjacent ETÜ years), surface the warning at input time, not only on the results page.
-
-5. **Önellenőrzés scope.** In önellenőrzés mode, each year is calculated independently. The app does NOT model cascading amendments across years. If the user has ETÜ data in adjacent years, a banner explains that consistency across multiple amended returns is their responsibility and recommends a tax adviser.
-
-6. **No stored personal data beyond the session.** The adóazonosító jel is stored only in `localStorage` as a convenience pre-fill and is never transmitted. No analytics. No telemetry.
-
-7. **Defer to official NAV calculators rather than reimplement them.** If NAV provides an official online calculator for a value (e.g. késedelmi pótlék, önellenőrzési pótlék), the app must **link to it rather than replace it**. A clearly labelled link is always preferable to an in-app approximation that could diverge from NAV's own computation and destroy user trust. The app may show an indicative estimate with a prominent "estimate only" label, but the call-to-action must always be the official NAV tool. Known NAV calculators:
-   - **Pótlékszámítás** (késedelmi pótlék + önellenőrzési pótlék): `https://nav.gov.hu/ugyfeliranytu/eljarasi_kerdesek/Kalkulatorok/potlekszamitas`
-   - **Ingatlanértékesítés kalkulátor**: not in scope
-   - **Általános adónaptár**: `https://nav.gov.hu/ugyfeliranytu/adonaptar` (for deadline confirmation)
+3. **Every auto-resolved external value (MNB FX rate, Yahoo Finance stock price) must show a verification link and a bilingual liability note.** The user is responsible for the correct value. The override input is always visible and editable.
+   - MNB verify link: `https://www.mnb.hu/arfolyamok`
+   - Yahoo Finance verify link: `https://finance.yahoo.com/quote/{TICKER}/history/`
 
 ---
 
@@ -45,7 +35,8 @@ This principle governs every feature decision:
 | `SPEC.md` | Product specification: scope, UX layout, personas, roadmap, branding, glossary. |
 | `AGENTS.md` | This file: stack constraints, repo layout, coding conventions, data schemas, module contracts. |
 
-Do not rely on tax rule data from any other file, conversation history, or general knowledge. `TAX-ANALYSIS.md` is the authority.
+> Do not rely on tax rule data from any other file, conversation history, or general knowledge. `TAX-ANALYSIS.md` is the authority.
+> Terminology and glossary: **SPEC.md §11**. Legal source URLs: **TAX-ANALYSIS.md Primary Legal Sources table**.
 
 ---
 
@@ -104,7 +95,9 @@ hu-equity-tax/
 ├── AGENTS.md                     # This file
 ├── SPEC.md                       # Product specification
 ├── TAX-ANALYSIS.md               # Authoritative tax rule analysis (primary source)
-└── README.md
+├── README.md
+└── .scratch/
+    └── issues/                   # 14 agent-ready implementation tickets (001–014)
 ```
 
 ---
@@ -335,16 +328,42 @@ hu-equity-tax/
 
 ## NAV payment accounts
 
-> Verify these annually against the current NAV website. Source: NAV Füzet #04 (2024-09-05).
+> Authoritative accounts and IBANs: **TAX-ANALYSIS.md §9**. Verify annually against nav.gov.hu.
 
-| Obligation | Account | IBAN | Payer | Közlemény |
-|---|---|---|---|---|
-| SZJA (annual + quarterly advance) | 10032000-06056353 | HU16 1003 2000 0605 6353 0000 0000 | Individual | adóazonosító jel |
-| SZOCHO (self-paid) | 10032000-06055912 | HU12 1003 2000 0605 5912 0000 0000 | Individual | adóazonosító jel |
-| TB járulék (self-paid, rare) | 10032000-06058200 | HU22 1003 2000 0605 8200 0000 0000 | Individual | adóazonosító jel |
+For `payment-guide.js` implementation use:
+- **SZJA** — account `10032000-06056353` / IBAN `HU16 1003 2000 0605 6353 0000 0000`
+- **SZOCHO** — account `10032000-06055912` / IBAN `HU12 1003 2000 0605 5912 0000 0000`
+- **TB** (rare) — account `10032000-06058200` / IBAN `HU22 1003 2000 0605 8200 0000 0000`
+- **Közlemény**: adóazonosító jel (10 digits). **Deadline**: May 20 of year+1.
+- Quarterly advance uses the same SZJA account; deadline from `tax-rules.json → quarterly_advance_deadlines`.
 
-Annual filing + payment deadline: **May 20** of the year following the tax year.
-Quarterly SZJA advance: same account as SZJA; deadline from `tax-rules.json → quarterly_advance_deadlines`.
+---
+
+## Implementation tickets
+
+All Phase 1 work is broken into **14 agent-ready tickets** under `.scratch/issues/`. Each ticket is self-contained — it names the files to read, the deliverables to produce, and the done conditions to verify.
+
+**Before starting any implementation work:**
+1. Read this file (`AGENTS.md`) and `TAX-ANALYSIS.md` in full.
+2. Open the relevant ticket from `.scratch/issues/`.
+3. Start with the lowest-numbered ticket whose blockers are already complete.
+
+**Dependency order (work blockers-first):**
+```
+001 (scaffold)
+ ├── 002 (i18n)  ── 003 (tax data)  ── 004 (MNB action)  ── 013 (lot + stock)  [parallel]
+ └── 005 (FX engine)
+       └── 006 (tax engine)
+             ├── 007 (ledger)
+             │     ├── 008 (transaction form)
+             │     └── 009 (ledger table)
+             └── 010 (eSZJA mapper + results)
+                   └── 011 (quarterly advance)
+                         └── 012 (payment + self-audit)
+                               └── 014 (app bootstrap)
+```
+
+Each `/implement` session should start fresh — open only the target ticket and the files it references. Do not carry state from a previous ticket's session.
 
 ---
 
@@ -360,11 +379,4 @@ User explicitly selects a past tax year. Shows delta + késedelmi kamat panel in
 
 ## Out of scope (do not implement without explicit instruction)
 
-- §77/A preferential share award scheme
-- Automatic DTT credit calculation
-- Broker CSV/PDF import parser
-- PDF / print export
-- Dark mode
-- Any server-side component
-- Any analytics or telemetry
-- Any npm runtime dependency
+Full out-of-scope list: **SPEC.md §4.2**. In addition: **zero npm runtime dependencies** (stack constraint — see above).

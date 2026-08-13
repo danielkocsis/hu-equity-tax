@@ -1,7 +1,7 @@
 # SPEC.md — HU-EquityTax Product Specification
 
 **Status:** Approved (post-grilling + tax analysis)
-**Version:** 1.1
+**Version:** 1.3
 **Target release:** Q1 2027 (ahead of 2026 tax filing season, deadline May 20 2027)
 
 > Tax rules, rates, formulas, and eSZJA row numbers are defined in `TAX-ANALYSIS.md`.
@@ -246,15 +246,7 @@ These rules apply to every screen and component:
 
 Table: **Row ID** | **Form section** | **Description (bilingual)** | **HUF amount** | **Copy**
 
-Rows emitted per TAX-ANALYSIS.md §11. Key mapping (confirmed from 24SZJA kitöltési útmutató):
-- Equity income (RSU/ESOP/ESPP/award) with self-paid SZOCHO → **sor 19** (24SZJA-A lap)
-- Equity income without SZOCHO (rare edge case) → sor 18
-- ETÜ net gain → 172. sor d oszlop; ETÜ loss → 172. sor a oszlop; ETÜ tax → 172. sor e oszlop
-- ETÜ loss offset rows → sorok 212–220 (06-os lap) and C lap sor 75 (shown if carry-forward applies)
-- Foreign dividend → **sor 182** (05-ös lap)
-- SZOCHO on non-EGT dividend → 24SZJA-09-es lap
-
-Note: row numbers confirmed identical across 21SZJA–25SZJA (2021–2025 income years). The app loads the per-year schema from `eszja-schema.json`.
+Row IDs and labels are loaded from `data/eszja-schema.json` per tax year. The confirmed mapping (identical across 2021–2025 income years) is defined in TAX-ANALYSIS.md §11. The schema shape and JSON structure are defined in AGENTS.md.
 
 ### 6.7 Quarterly advance panel (current year mode only)
 
@@ -321,7 +313,7 @@ On load: silently restore ledger if present. Footer: "Clear all saved data" — 
 
 Anyone may use, share, and adapt for personal or non-commercial purposes with attribution. Commercial use, embedding in paid products, and commercial redistribution require the author's explicit consent.
 
-Footer and README note: *"Free to use for personal tax calculation. Not for commercial redistribution. © [author], CC BY-NC 4.0."*
+Footer and README note: *"Free to use for personal tax calculation. Not for commercial redistribution. © danielkocsis, CC BY-NC 4.0."*
 
 ---
 
@@ -349,7 +341,7 @@ All features in §4.1.
 | NAV renumbers eSZJA rows annually | Abstracted in `eszja-schema.json`; update JSON each year without touching code |
 | SZOCHO rate change (future) | Date-range array in `szocho_rates`; engine does range lookup — no hardcoded rates |
 | US-HU DTT termination unknown to user | Red warning banner on any US event ≥ 2024-01-01 |
-| SZOCHO rate history | Confirmed: 19.5% (2019), 15.5% (2020–2021), 13% (2022+). No mid-year splits. See TAX-ANALYSIS §5.1 |
+| SZOCHO rate history | Confirmed with mid-year splits: 19.5% (H1 2019), 17.5% (H2 2019–H1 2020), 15.5% (H2 2020–2021), 13% (2022+). Date-range arrays required for 2019 and 2020. See TAX-ANALYSIS §5.1. |
 | Min monthly wage 2026 | Confirmed: 317,000 HUF (minimálbér). Source: 451/2024 Korm. rendelet. |
 | eSZJA rows across all years | Confirmed identical across 21–25SZJA (sor 19, 172, 182). Verify 26SZJA when published (Jan 2027). |
 | Yahoo Finance unofficial API breakage | Graceful fallback to manual + direct URL; feature is hint only |

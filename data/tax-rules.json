@@ -1,0 +1,165 @@
+{
+  "2019": {
+    "szja_rate": 0.15,
+    "szocho_rates": [
+      { "from": "2019-01-01", "to": "2019-06-30", "rate": 0.195 },
+      { "from": "2019-07-01", "to": "2019-12-31", "rate": 0.175 }
+    ],
+    "tb_rate": 0.185,
+    "tax_base_multiplier": 0.89,
+    "szocho_dividend_cap_multiplier": 24,
+    "min_monthly_wage_huf": 149000,
+    "us_hu_dtt_active": true,
+    "uk_hu_dtt_active": true,
+    "etü_loss_carryforward_years": 2,
+    "quarterly_advance_deadlines": ["04-12", "07-12", "10-12", "01-12"],
+    "quarterly_advance_threshold_huf": 10000,
+    "late_interest_surcharge": 0.05,
+    "mnb_base_rates": [
+      { "from": "2019-01-01", "to": "2019-12-31", "rate": 0.09 }
+    ],
+    "late_interest_formula": "base_rate_plus_5pp"
+  },
+  "2020": {
+    "szja_rate": 0.15,
+    "szocho_rates": [
+      { "from": "2020-01-01", "to": "2020-06-30", "rate": 0.175 },
+      { "from": "2020-07-01", "to": "2020-12-31", "rate": 0.155 }
+    ],
+    "tb_rate": 0.185,
+    "tax_base_multiplier": 0.89,
+    "szocho_dividend_cap_multiplier": 24,
+    "min_monthly_wage_huf": 161000,
+    "us_hu_dtt_active": true,
+    "uk_hu_dtt_active": true,
+    "etü_loss_carryforward_years": 2,
+    "quarterly_advance_deadlines": ["04-12", "07-12", "10-12", "01-12"],
+    "quarterly_advance_threshold_huf": 10000,
+    "late_interest_surcharge": 0.05,
+    "mnb_base_rates": [
+      { "from": "2020-01-01", "to": "2020-12-31", "rate": 0.006 }
+    ],
+    "late_interest_formula": "base_rate_plus_5pp"
+  },
+  "2021": {
+    "szja_rate": 0.15,
+    "szocho_rates": [
+      { "from": "2021-01-01", "to": "2021-12-31", "rate": 0.155 }
+    ],
+    "tb_rate": 0.185,
+    "tax_base_multiplier": 0.89,
+    "szocho_dividend_cap_multiplier": 24,
+    "min_monthly_wage_huf": 167400,
+    "us_hu_dtt_active": true,
+    "uk_hu_dtt_active": true,
+    "etü_loss_carryforward_years": 2,
+    "quarterly_advance_deadlines": ["04-12", "07-12", "10-12", "01-12"],
+    "quarterly_advance_threshold_huf": 10000,
+    "late_interest_surcharge": 0.05,
+    "mnb_base_rates": [
+      { "from": "2021-01-01", "to": "2021-12-31", "rate": 0.006 }
+    ],
+    "late_interest_formula": "base_rate_plus_5pp"
+  },
+  "2022": {
+    "szja_rate": 0.15,
+    "szocho_rates": [
+      { "from": "2022-01-01", "to": "2022-12-31", "rate": 0.13 }
+    ],
+    "tb_rate": 0.185,
+    "tax_base_multiplier": 0.89,
+    "szocho_dividend_cap_multiplier": 24,
+    "min_monthly_wage_huf": 200000,
+    "us_hu_dtt_active": true,
+    "uk_hu_dtt_active": true,
+    "etü_loss_carryforward_years": 2,
+    "quarterly_advance_deadlines": ["04-12", "07-12", "10-12", "01-12"],
+    "quarterly_advance_threshold_huf": 10000,
+    "late_interest_surcharge": 0.05,
+    "mnb_base_rates": [
+      { "from": "2022-01-01", "to": "2022-06-30", "rate": 0.04, "_note": "approximate — MNB raised rates through 2022 H1; use NAV pótlékszámítás for authoritative késedelmi figures" },
+      { "from": "2022-07-01", "to": "2022-12-31", "rate": 0.13 }
+    ],
+    "late_interest_formula": "base_rate_plus_5pp"
+  },
+  "2023": {
+    "szja_rate": 0.15,
+    "szocho_rates": [
+      { "from": "2023-01-01", "to": "2023-12-31", "rate": 0.13 }
+    ],
+    "tb_rate": 0.185,
+    "tax_base_multiplier": 0.89,
+    "szocho_dividend_cap_multiplier": 24,
+    "min_monthly_wage_huf": 232000,
+    "us_hu_dtt_active": true,
+    "uk_hu_dtt_active": true,
+    "etü_loss_carryforward_years": 2,
+    "quarterly_advance_deadlines": ["04-12", "07-12", "10-12", "01-12"],
+    "quarterly_advance_threshold_huf": 10000,
+    "late_interest_surcharge": 0.05,
+    "mnb_base_rates": [
+      { "from": "2023-01-01", "to": "2023-12-31", "rate": 0.13 }
+    ],
+    "late_interest_formula": "base_rate_plus_5pp"
+  },
+  "2024": {
+    "szja_rate": 0.15,
+    "szocho_rates": [
+      { "from": "2024-01-01", "to": "2024-12-31", "rate": 0.13 }
+    ],
+    "tb_rate": 0.185,
+    "tax_base_multiplier": 0.89,
+    "szocho_dividend_cap_multiplier": 24,
+    "min_monthly_wage_huf": 266800,
+    "us_hu_dtt_active": false,
+    "uk_hu_dtt_active": true,
+    "etü_loss_carryforward_years": 2,
+    "quarterly_advance_deadlines": ["04-12", "07-12", "10-12", "01-12"],
+    "quarterly_advance_threshold_huf": 10000,
+    "late_interest_surcharge": 0.05,
+    "mnb_base_rates": [
+      { "from": "2024-01-01", "to": "2024-12-31", "rate": 0.10 }
+    ],
+    "late_interest_formula": "base_rate_plus_5pp"
+  },
+  "2025": {
+    "szja_rate": 0.15,
+    "szocho_rates": [
+      { "from": "2025-01-01", "to": "2025-12-31", "rate": 0.13 }
+    ],
+    "tb_rate": 0.185,
+    "tax_base_multiplier": 0.89,
+    "szocho_dividend_cap_multiplier": 24,
+    "min_monthly_wage_huf": 290800,
+    "us_hu_dtt_active": false,
+    "uk_hu_dtt_active": true,
+    "etü_loss_carryforward_years": 2,
+    "quarterly_advance_deadlines": ["04-12", "07-12", "10-12", "01-12"],
+    "quarterly_advance_threshold_huf": 10000,
+    "late_interest_surcharge": 0.05,
+    "mnb_base_rates": [
+      { "from": "2025-01-01", "to": "2025-12-31", "rate": 0.065 }
+    ],
+    "late_interest_formula": "base_rate_plus_5pp"
+  },
+  "2026": {
+    "szja_rate": 0.15,
+    "szocho_rates": [
+      { "from": "2026-01-01", "to": "2026-12-31", "rate": 0.13 }
+    ],
+    "tb_rate": 0.185,
+    "tax_base_multiplier": 0.89,
+    "szocho_dividend_cap_multiplier": 24,
+    "min_monthly_wage_huf": 317000,
+    "us_hu_dtt_active": false,
+    "uk_hu_dtt_active": true,
+    "etü_loss_carryforward_years": 2,
+    "quarterly_advance_deadlines": ["04-12", "07-12", "10-12", "01-12"],
+    "quarterly_advance_threshold_huf": 10000,
+    "late_interest_surcharge": 0.05,
+    "mnb_base_rates": [
+      { "from": "2026-01-01", "to": "2026-12-31", "rate": 0.065 }
+    ],
+    "late_interest_formula": "base_rate_plus_5pp"
+  }
+}

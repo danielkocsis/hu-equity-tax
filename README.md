@@ -42,7 +42,7 @@ This is a free, open-source calculator, **not professional tax advice**. Accurac
 
 ## Tax law coverage
 
-Tax rules are sourced from Hungarian primary legislation and official NAV publications. See [`TAX-ANALYSIS.md`](TAX-ANALYSIS.md) for the full research and source citations.
+Tax rules are sourced from Hungarian primary legislation and official NAV publications.
 
 Key legal bases:
 - [Szja tv. (1995. évi CXVII. tv.)](https://net.jogtar.hu/jogszabaly?docid=99500117.TV) — personal income tax
@@ -54,54 +54,25 @@ Covered tax years: **2021–2025** (the 5 open audit years as of 2026). Current 
 
 ---
 
-## Getting started (contributing / running locally)
+## Use it
 
-No build step required. The app is pure HTML + CSS + ES Modules.
+**→ [danielkocsis.github.io/hu-equity-tax](https://danielkocsis.github.io/hu-equity-tax)**
+
+No installation, no login, no account. Open the link and start entering your equity events.
+
+MNB exchange rates are updated automatically every business day.
+
+---
+
+## Contributing
+
+The app is pure HTML + CSS + ES Modules — no build step, no npm, no bundler.
 
 ```bash
 git clone https://github.com/danielkocsis/hu-equity-tax.git
 cd hu-equity-tax
-# Open index.html in your browser, or serve with any static server:
-npx serve .
+open index.html   # or double-click it in Finder / Explorer
 ```
-
-MNB exchange rate data is kept up to date by a GitHub Actions cron job that fetches daily rates from the MNB SOAP API and commits them to `data/mnb_fx_YYYY.json`.
-
----
-
-## Project structure
-
-```
-hu-equity-tax/
-├── index.html              # Single-page entry point
-├── css/style.css           # All styles (vanilla CSS, no framework)
-├── js/                     # ES modules — no bundler
-│   ├── tax-engine.js       # Core SZJA/SZOCHO calculation logic
-│   ├── fx-engine.js        # MNB FX rate lookup
-│   ├── ledger.js           # Transaction store (localStorage)
-│   └── ...
-├── data/
-│   ├── tax-rules.json      # Per-year tax rates (2019–2026)
-│   ├── eszja-schema.json   # Per-year eSZJA row IDs
-│   └── mnb_fx_YYYY.json    # MNB FX rates (auto-updated by CI)
-├── locales/
-│   ├── hu.json             # Hungarian UI strings
-│   └── en.json             # English UI strings
-├── AGENTS.md               # AI coding agent instructions
-├── SPEC.md                 # Full product specification
-└── TAX-ANALYSIS.md         # Tax law research and sources
-```
-
----
-
-## Documentation
-
-| File | Purpose |
-|---|---|
-| [`AGENTS.md`](AGENTS.md) | Stack constraints, module contracts, data schemas — read this before writing code |
-| [`SPEC.md`](SPEC.md) | Full product spec: scope, UX, roadmap, branding, glossary |
-| [`TAX-ANALYSIS.md`](TAX-ANALYSIS.md) | Authoritative tax rule analysis with primary source citations |
-| [`.scratch/issues/`](.scratch/issues/) | Implementation tickets (work blockers-first, 001 → 014) |
 
 ---
 
