@@ -14,6 +14,12 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # Pin Node so runner image updates don't silently change the runtime.
+      # Python ≥3.10 is pre-installed on ubuntu-latest (no setup-python needed).
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
       - name: Static checks (JSON · data integrity · locales · JS syntax · AGENTS constraints · HTML)
         run: python3 tests/check.py
 

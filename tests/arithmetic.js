@@ -2,17 +2,29 @@
  * HU-EquityTax — tax arithmetic smoke tests
  * Run from the repo root:  node tests/arithmetic.js
  *
- * Verifies the done-conditions from ticket 006 directly against tax-rules.json.
- * No test framework needed — plain Node with assertions.
+ * Verifies done-conditions from ticket 006 against live source modules and
+ * tax-rules.json data. Uses real imports — not copies of the source logic.
  */
 
 import { readFileSync } from "fs";
+import { fileURLToPath } from "url";
+import { dirname, join } from "path";
+
+// C-1 fix: resolve paths relative to this file, not process.cwd()
+const __dirname = dirname(fileURLToPath(import.meta.url));
+const ROOT = join(__dirname, "..");
+
+// C-1 fix: import real modules instead of re-implementing the logic
+import { applyFifo }        from "../js/lot-tracker.js";
+import { getSzochoRate,
+         calculateEvent,
+         aggregateYear }    from "../js/tax-engine.js";
 
 const RED   = "\x1b[31m";
 const GREEN = "\x1b[32m";
 const RESET = "\x1b[0m";
-const PASS  = `${GREEN}✓${RESET}`;
-const FAIL  = `${RED}✗${RESET}`;
+const PASS  = `${GREEN}\u2713${RESET}`;
+const FAIL  = `${RED}\u2717${RESET}`;
 
 let passCount = 0;
 let failCount = 0;
@@ -22,16 +34,17 @@ function ok(label) {
   passCount++;
 }
 
+// N-2 fix: use string concatenation + "\n" instead of a literal newline in template literal
 function fail(label, detail = "") {
-  console.log(`  ${FAIL} ${label}${detail ? `
-      ${detail}` : ""}`);
+  console.log(`  ${FAIL} ${label}` + (detail ? `
+      ${detail}` : ""));
   failCount++;
 }
 
 function section(title) {
   console.log(`
 ${title}`);
-  console.log("─".repeat(title.length));
+  console.log("\u2500".repeat(title.length));
 }
 
 function assertEq(actual, expected, label) {
@@ -51,168 +64,174 @@ function assertTrue(condition, label) {
 }
 
 // ── Load data ────────────────────────────────────────────────────────────────
+// I-4 fix: use __dirname-relative path so the script works from any cwd
 
-const rules = JSON.parse(readFileSync("data/tax-rules.json", "utf-8"));
-
-/**
- * Returns the SZOCHO rate applicable for a given date string.
- * @param {string} dateStr - YYYY-MM-DD
- * @param {object} r - Year rules object
- * @returns {number}
- */
-function getSzochoRate(dateStr, r) {
-  for (const range of r.szocho_rates) {
-    if (dateStr >= range.from && dateStr <= range.to) return range.rate;
-  }
-  throw new Error(`No SZOCHO rate found for date ${dateStr}`);
-}
+const rules = JSON.parse(readFileSync(join(ROOT, "data/tax-rules.json"), "utf-8"));
+const r24 = rules["2024"];
+const r19 = rules["2019"];
+const r20 = rules["2020"];
 
 // ── RSU_VEST — 2024 ──────────────────────────────────────────────────────────
 
 section("RSU_VEST — 2024 (ticket 006 done-conditions)");
 
-const r24 = rules["2024"];
-const gross        = 1_000_000;
-const tax_base     = Math.round(gross * r24.tax_base_multiplier);
-const szja         = Math.round(r24.szja_rate * tax_base);
-const szocho_rate  = getSzochoRate("2024-03-15", r24);
-const szocho       = Math.round(szocho_rate * tax_base);
+// Uses calculateEvent() from the real tax-engine.js module (C-1)
+const rsu_result = calculateEvent(
+  { type: "RSU_VEST", date: "2024-03-15", gross_huf: 1_000_000, source_country: "EU" },
+  r24,
+);
 
-assertEq(tax_base, 890_000,  "tax_base (gross × 0.89)");
-assertEq(szja,     133_500,  "SZJA    (15% × 890,000)");
-assertEq(szocho,   115_700,  "SZOCHO  (13% × 890,000)");
+assertEq(rsu_result.tax_base_huf, 890_000, "tax_base (gross \xd7 0.89)");
+assertEq(rsu_result.szja_huf,     133_500, "SZJA     (15% \xd7 890,000)");
+assertEq(rsu_result.szocho_huf,   115_700, "SZOCHO   (13% \xd7 890,000)");
 
 // ── DIVIDEND — non-EGT, 2024 ─────────────────────────────────────────────────
 
-section("DIVIDEND — non-EGT, 2024");
+section("DIVIDEND \u2014 non-EGT, 2024");
 
-const div_gross  = 500_000;
-const div_szja   = Math.round(r24.szja_rate * div_gross);
-const div_szocho = Math.round(getSzochoRate("2024-06-01", r24) * div_gross);
+const div_result = calculateEvent(
+  { type: "DIVIDEND", date: "2024-06-01", gross_huf: 500_000, is_egt: false },
+  r24,
+);
 
-assertEq(div_szja,   75_000, "SZJA   (15% × 500,000)");
-assertEq(div_szocho, 65_000, "SZOCHO (13% × 500,000)");
+assertEq(div_result.szja_huf,   75_000, "SZJA   (15% \xd7 500,000)");
+assertEq(div_result.szocho_huf, 65_000, "SZOCHO (13% \xd7 500,000)");
 
 // ── DIVIDEND — EGT (SZOCHO = 0) ──────────────────────────────────────────────
 
-section("DIVIDEND — EGT-listed share (SZOCHO exempt)");
+section("DIVIDEND \u2014 EGT-listed share (SZOCHO exempt)");
 
-assertEq(Math.round(r24.szja_rate * div_gross), 75_000, "SZJA    (15% × 500,000)");
-assertEq(0, 0, "SZOCHO  (EGT exempt → 0)");
+// C-2 fix: test through calculateEvent() with is_egt:true — not a literal 0 === 0
+const egt_result = calculateEvent(
+  { type: "DIVIDEND", date: "2024-06-01", gross_huf: 500_000, is_egt: true },
+  r24,
+);
 
-// ── SHARE_SALE — ETÜ gain, 2024 ──────────────────────────────────────────────
+assertEq(egt_result.szja_huf,   75_000, "SZJA   (15% \xd7 500,000, unchanged)");
+assertEq(egt_result.szocho_huf,      0, "SZOCHO (EGT exempt \u2192 0)");
+// Confirm the difference is real: non-EGT produces SZOCHO > 0
+assertTrue(div_result.szocho_huf > 0, "non-EGT SZOCHO baseline > 0 (confirms exemption is meaningful)");
 
-section("SHARE_SALE — ETÜ, 2024 (Szja tv. §67/A)");
+// ── SHARE_SALE — ETÜ, 2024 ───────────────────────────────────────────────────
 
-const gain     = 200_000;
-const sale_szja = Math.round(r24.szja_rate * gain);
-assertEq(sale_szja, 30_000, "SZJA   (15% × 200,000)");
-assertEq(0,         0,      "SZOCHO (ETÜ exempt → 0)");
+section("SHARE_SALE \u2014 ET\xdc, 2024 (Szja tv. \xa767/A)");
+
+// C-3 fix: test through calculateEvent() with a real gain — not a literal 0 === 0
+const sale_result = calculateEvent(
+  { type: "SHARE_SALE", date: "2024-09-01", quantity: 100,
+    gross_huf: 2_000_000, broker_fee_huf: 0,
+    lots: [{ vest_date: "2022-01-01", quantity: 100,
+              fmv_at_vest_foreign: 10, mnb_rate_at_vest: 350 }] },
+  r24,
+);
+
+// Gain = 2,000,000 − (10 × 100 × 350) = 2,000,000 − 350,000 = 1,650,000
+// SZJA = 15% × 1,650,000 = 247,500; SZOCHO = 0 (ETÜ rule)
+assertEq(sale_result.gain_huf,   1_650_000, "gain_huf (proceeds \u2212 cost_basis)");
+assertEq(sale_result.szja_huf,     247_500, "SZJA     (15% \xd7 1,650,000)");
+assertEq(sale_result.szocho_huf,         0, "SZOCHO   (ET\xdc exempt \u2192 0)");
 
 // ── SZOCHO dividend cap — 2024 ────────────────────────────────────────────────
 
-section("SZOCHO dividend cap — 2024");
+section("SZOCHO dividend cap \u2014 2024");
 
 const cap = r24.szocho_dividend_cap_multiplier * r24.min_monthly_wage_huf;
-assertEq(cap, 6_403_200, "Cap (24 × 266,800 HUF)");
+assertEq(cap, 6_403_200, "Cap (24 \xd7 266,800 HUF)");
+
+// Verify cap stops accumulation: two dividends totalling > cap
+const agg = aggregateYear(
+  [
+    { type: "DIVIDEND", date: "2024-01-15", gross_huf: 4_000_000, is_egt: false },
+    { type: "DIVIDEND", date: "2024-06-15", gross_huf: 4_000_000, is_egt: false },
+  ],
+  2024, r24,
+);
+assertTrue(
+  agg.dividend_szocho_used <= cap,
+  `SZOCHO capped at ${cap} HUF, used ${agg.dividend_szocho_used}`,
+);
 
 // ── Split SZOCHO rates — 2019 ─────────────────────────────────────────────────
 
-section("Split SZOCHO rates — 2019 (mid-year transition)");
+section("Split SZOCHO rates \u2014 2019 (mid-year transition)");
 
-const r19 = rules["2019"];
 assertEq(getSzochoRate("2019-03-01", r19), 0.195, "H1 rate (19.5%)");
 assertEq(getSzochoRate("2019-09-01", r19), 0.175, "H2 rate (17.5%)");
 
 // ── Split SZOCHO rates — 2020 ─────────────────────────────────────────────────
 
-section("Split SZOCHO rates — 2020 (mid-year transition)");
+section("Split SZOCHO rates \u2014 2020 (mid-year transition)");
 
-const r20 = rules["2020"];
 assertEq(getSzochoRate("2020-03-01", r20), 0.175, "H1 rate (17.5%)");
 assertEq(getSzochoRate("2020-09-01", r20), 0.155, "H2 rate (15.5%)");
 
-// ── DTT flags ─────────────────────────────────────────────────────────────────
+// ── DTT flags — all years ─────────────────────────────────────────────────────
 
 section("US-HU DTT termination (2024-01-01)");
 
-for (const [year, expected] of [["2019",true],["2020",true],["2021",true],["2022",true],["2023",true],["2024",false],["2025",false],["2026",false]]) {
+// N-4 fix: drive from Object.keys(rules) so new years are covered automatically
+for (const year of Object.keys(rules).sort()) {
+  const expected = parseInt(year) < 2024;
   assertTrue(
     rules[year].us_hu_dtt_active === expected,
     `${year}: us_hu_dtt_active = ${expected}`,
   );
 }
 
-// ── Self-audit pótlék — 50% ratio ────────────────────────────────────────────
+// ── Self-audit p\xf3tl\xe9k \u2014 50% ratio ────────────────────────────────
 
-section("Self-audit pótlék — önellenőrzési = exactly 50% of késedelmi");
+section("Self-audit p\xf3tl\xe9k \u2014 \xf6nellen\u0151rz\xe9si = exactly 50% of k\xe9sedelmi");
 
-// Art. tv. 209.§(1): delta × ((base_rate + 0.05) / 365) × days
-// Önellenőrzési pótlék = 50% of késedelmi pótlék
-const delta       = 1_000_000;
-const base_rate   = 0.10;           // 2024 MNB base rate
-const days        = 365;
-const kesedelmi   = Math.round(delta * ((base_rate + 0.05) / 365) * days);
+// I-7 fix: read base_rate from tax-rules.json instead of hardcoding 0.10
+const base_rate = r24.mnb_base_rates[0].rate;
+assertTrue(base_rate > 0, `base_rate from tax-rules.json: ${base_rate}`);
+
+// Art. tv. 209.\xa7(1): delta \xd7 ((base_rate + 0.05) / 365) \xd7 days
+const delta      = 1_000_000;
+const days       = 365;
+const kesedelmi  = Math.round(delta * ((base_rate + 0.05) / 365) * days);
 const onellenorzes = Math.round(kesedelmi * 0.5);
 
 assertTrue(
   onellenorzes === Math.round(kesedelmi / 2),
-  `önellenőrzési (${onellenorzes}) = exactly 50% of késedelmi (${kesedelmi})`,
+  `\xf6nellen\u0151rz\xe9si (${onellenorzes}) = exactly 50% of k\xe9sedelmi (${kesedelmi})`,
 );
 
-// ── FIFO lot tracker ──────────────────────────────────────────────────────────
+// ── FIFO lot tracker (real module) ────────────────────────────────────────────
 
-section("FIFO lot tracker (lot-tracker.js logic)");
+section("FIFO lot tracker (real js/lot-tracker.js)");
 
-function applyFifo(lots, sellQty, proceedsHuf, feeHuf = 0) {
-  const sorted = [...lots].sort((a, b) => a.vest_date.localeCompare(b.vest_date));
-  let qtyLeft = sellQty;
-  let totalCost = 0;
-  const consumed = [];
-  const remaining = [];
-
-  for (const lot of sorted) {
-    if (qtyLeft <= 0) { remaining.push({ ...lot }); continue; }
-    const qty = Math.min(lot.quantity, qtyLeft);
-    const cost = lot.fmv_at_vest_foreign * qty * lot.mnb_rate_at_vest;
-    totalCost += cost;
-    consumed.push({ vest_date: lot.vest_date, quantity_consumed: qty, cost_basis_huf: Math.round(cost) });
-    qtyLeft -= qty;
-    if (lot.quantity - qty > 0) remaining.push({ ...lot, quantity: lot.quantity - qty });
-  }
-
-  return {
-    consumed_lots: consumed,
-    remaining_lots: remaining,
-    total_cost_basis_huf: Math.round(totalCost),
-    gain_huf: Math.round(proceedsHuf - Math.round(totalCost) - feeHuf),
-  };
-}
-
+// C-1 fix: calls the imported applyFifo from lot-tracker.js, not a local copy
 const lots = [
-  { vest_date: "2022-01-01", quantity: 100, fmv_at_vest_foreign: 142.30, mnb_rate_at_vest: 356.20 },
-  { vest_date: "2023-01-01", quantity:  50, fmv_at_vest_foreign: 180.00, mnb_rate_at_vest: 380.00 },
+  { vest_date: "2022-01-01", quantity: 100, currency: "USD",
+    fmv_at_vest_foreign: 142.30, mnb_rate_at_vest: 356.20 },
+  { vest_date: "2023-01-01", quantity:  50, currency: "USD",
+    fmv_at_vest_foreign: 180.00, mnb_rate_at_vest: 380.00 },
 ];
 
-const result = applyFifo(lots, 120, 10_000_000, 50_000);
+const fifo = applyFifo(lots, 120, 10_000_000, 50_000);
 
-assertEq(result.consumed_lots[0].quantity_consumed, 100, "2022 lot fully consumed (100 shares)");
-assertEq(result.consumed_lots[1].quantity_consumed,  20, "2023 lot partially consumed (20 shares)");
-assertEq(result.remaining_lots.length,                1, "1 lot remaining");
-assertEq(result.remaining_lots[0].quantity,          30, "30 shares remain in 2023 lot");
-assertTrue(result.gain_huf > 0, `gain_huf = ${result.gain_huf} (positive)`);
+assertEq(fifo.consumed_lots[0].quantity_consumed, 100, "2022 lot fully consumed");
+assertEq(fifo.consumed_lots[1].quantity_consumed,  20, "2023 lot partially consumed (20 of 50)");
+assertEq(fifo.remaining_lots.length,                1, "1 lot remaining");
+assertEq(fifo.remaining_lots[0].quantity,          30, "30 shares remain in 2023 lot");
+assertTrue(fifo.gain_huf > 0, `gain_huf = ${fifo.gain_huf} (positive after fee)`);
+
+// Edge: sell_quantity > available lots — warns, gain may be wrong but no crash
+const overSell = applyFifo(lots, 200, 5_000_000, 0);
+assertTrue(overSell.remaining_lots.length === 0, "over-sell: all lots consumed");
 
 // ── Summary ───────────────────────────────────────────────────────────────────
 
 console.log();
 const total = passCount + failCount;
 if (failCount > 0) {
-  console.log(`${RED}${"═".repeat(50)}`);
-  console.log(`  FAILED — ${failCount} of ${total} assertions failed`);
-  console.log(`${"═".repeat(50)}${RESET}`);
+  console.log(`${RED}${"=".repeat(50)}${RESET}`);
+  console.log(`  FAILED \u2014 ${failCount} of ${total} assertions failed`);
+  console.log(`${RED}${"=".repeat(50)}${RESET}`);
   process.exit(1);
 } else {
-  console.log(`${GREEN}${"═".repeat(50)}`);
+  console.log(`${GREEN}${"=".repeat(50)}${RESET}`);
   console.log(`  All ${total} assertions passed`);
-  console.log(`${"═".repeat(50)}${RESET}`);
+  console.log(`${GREEN}${"=".repeat(50)}${RESET}`);
 }
