@@ -3,7 +3,6 @@
   "nav.subtitle": "Help with Hungarian taxation of foreign equity awards",
   "disclaimer": "This tool is a free, open-source calculator, not professional tax advice. Accuracy depends entirely on the data you enter. You are solely responsible for your tax return and payments. Verification by a qualified accountant is recommended.",
   "banner.closed_year": "closed tax year — self-audit (önellenőrzés) mode is active. Quarterly advance does not apply.",
-  "year.selector.label": "Tax year",
   "section.add_event": "Add Event",
   "section.ledger": "Transaction Ledger",
   "section.results": "Tax Results",

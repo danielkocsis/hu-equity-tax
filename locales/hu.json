@@ -3,7 +3,6 @@
   "nav.subtitle": "Segítség a külföldi részvényjuttatások magyar adózásához",
   "disclaimer": "Ez az eszköz ingyenes, nyílt forráskódú számológép, nem adótanácsadás. Az eredmények pontossága kizárólag a megadott adatokon múlik. Az adóbevallásért és az adófizetésért kizárólag az adózó felel. Könyvelő megerősítése javasolt.",
   "banner.closed_year": "lezárt adóév — az önellenőrzési mód aktív. Negyedéves előleg nem alkalmazandó.",
-  "year.selector.label": "Adóév",
   "section.add_event": "Esemény hozzáadása",
   "section.ledger": "Tranzakciónapló",
   "section.results": "Számítási eredmények",

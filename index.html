@@ -25,6 +25,7 @@
       </div>
 
       <div class="header-controls">
+        <!-- ⚠ Add a new <option> here each year when the new tax year opens -->
         <select id="year-select" aria-label="Tax year">
           <option value="2019">2019</option>
           <option value="2020">2020</option>
@@ -53,14 +54,12 @@
   </div>
 
   <!-- Closed-year warning — shown when a past tax year is selected -->
-  <div id="closed-year-banner" class="closed-year-banner hidden" role="alert">
+  <!-- role="status" + aria-live="polite": announces after user pause, not on every keystroke -->
+  <div id="closed-year-banner" class="closed-year-banner hidden" role="status" aria-live="polite">
     <div class="app-wrapper">
       <span class="closed-year-icon" aria-hidden="true">🔒</span>
-      <span>
-        <strong id="closed-year-label"></strong>
-        <span> </span><!-- space between year number and translated suffix -->
-        <span data-i18n="banner.closed_year">lezárt adóév — az önellenőrzési mód aktív. Negyedéves előleg nem alkalmazandó.</span>
-      </span>
+      <strong id="closed-year-label"></strong>
+      <span data-i18n="banner.closed_year">lezárt adóév — az önellenőrzési mód aktív. Negyedéves előleg nem alkalmazandó.</span>
     </div>
   </div>
 

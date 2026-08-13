@@ -14,12 +14,20 @@ import { clear as clearLedger } from './ledger.js';
 import { clearOverrides } from './fx-engine.js';
 
 const YEAR_KEY  = 'hu_equity_tax_year';
-const ADOID_KEY = 'hu_equity_tax_adoid';
+const ADOID_KEY = 'hu_equity_tax_adoid'; // written by payment-guide UI (ticket 012)
 
-const CALENDAR_YEAR = new Date().getFullYear();
+/**
+ * Returns the current calendar year, evaluated fresh each call.
+ * Using a function (rather than a module-level constant) prevents the midnight-rollover
+ * bug where a tab open across New Year's Eve would treat the new year as "closed".
+ * @returns {number}
+ */
+function getCalendarYear() {
+  return new Date().getFullYear();
+}
 
 /** @type {number} */
-let currentYear = CALENDAR_YEAR;
+let currentYear = getCalendarYear();
 
 /** @type {'current'|'onellenorzes'} */
 let currentMode = 'current';
@@ -48,7 +56,7 @@ export function getMode() {
  */
 function applyYear(year) {
   currentYear = year;
-  currentMode = year === CALENDAR_YEAR ? 'current' : 'onellenorzes';
+  currentMode = year === getCalendarYear() ? 'current' : 'onellenorzes';
 
   const advanceSection   = document.getElementById('advance');
   const selfAuditSection = document.getElementById('self-audit');
@@ -77,11 +85,12 @@ function initYearSelect() {
   const select = document.getElementById('year-select');
   if (!select) return;
 
-  // Restore persisted year, validate it exists as an option, else fall back to current year.
+  // Restore persisted year; parseInt sanitises the localStorage value before the selector
+  // interpolation, so no XSS risk. Falls back to the current calendar year if unset/invalid.
   const saved = parseInt(localStorage.getItem(YEAR_KEY) ?? '', 10);
   const initial = !isNaN(saved) && select.querySelector(`option[value="${saved}"]`)
     ? saved
-    : CALENDAR_YEAR;
+    : getCalendarYear();
 
   select.value = String(initial);
   applyYear(initial);

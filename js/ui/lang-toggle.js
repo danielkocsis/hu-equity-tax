@@ -33,6 +33,7 @@ export function initLangToggle() {
  */
 function updateLabel(btn) {
   const switchingTo = getLang() === 'hu' ? 'en' : 'hu';
+  // innerHTML is safe here: both values are hard-coded string literals with no user input.
   btn.innerHTML = switchingTo === 'en'
     ? '<span aria-hidden="true">🇬🇧</span>'
     : '<span aria-hidden="true">🇭🇺</span>';

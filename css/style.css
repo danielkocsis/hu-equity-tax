@@ -63,7 +63,6 @@ html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
   /* Layout */
   --max-w: 860px;
   --header-h: 56px;
-  --disclaimer-h: 34px;  /* approximate single-line disclaimer height */
 
   /* Shape */
   --r: 10px;       /* card radius */
@@ -166,9 +165,6 @@ a:hover { text-decoration: underline; }
 
 /* ── Disclaimer ────────────────────────────────────────── */
 .disclaimer-banner {
-  position: sticky;
-  top: var(--header-h);   /* sits flush under the nav bar */
-  z-index: 100;
   background: var(--warn-bg);
   border-bottom: 1px solid #fde68a;
   padding: var(--s1) 0;
@@ -195,9 +191,6 @@ a:hover { text-decoration: underline; }
 
 /* ── Closed-year banner ────────────────────────────────── */
 .closed-year-banner {
-  position: sticky;
-  top: calc(var(--header-h) + var(--disclaimer-h));  /* below nav + disclaimer */
-  z-index: 99;
   background: var(--accent-subtle);
   border-bottom: 1px solid var(--accent-border);
   padding: var(--s1) 0;
@@ -206,7 +199,7 @@ a:hover { text-decoration: underline; }
 .closed-year-banner .app-wrapper {
   display: flex;
   align-items: center;
-  gap: var(--s1);
+  gap: 5px;  /* icon + year number + suffix text */
 }
 
 .closed-year-icon {
@@ -228,8 +221,8 @@ a:hover { text-decoration: underline; }
 
 /* ── Main ──────────────────────────────────────────────── */
 html {
-  /* Clear both sticky bars (56px header + ~36px disclaimer) for anchor links */
-  scroll-padding-top: 100px;
+  /* Clear the sticky header (56px) for anchor links */
+  scroll-padding-top: 64px;
 }
 
 main {
@@ -1054,12 +1047,13 @@ details summary:hover { color: var(--n700); }
   .form-grid { grid-template-columns: 1fr; }
   .payment-cards { grid-template-columns: 1fr; }
   .result-grid { grid-template-columns: repeat(2, 1fr); }
-  .year-badge { font-size: var(--t-2xl); }
   main .app-wrapper { gap: var(--s4); }
 }
 
-@media (max-width: 380px) {
+@media (max-width: 400px) {
   .result-grid { grid-template-columns: 1fr; }
+  .app-header .app-wrapper { flex-wrap: wrap; padding-block: var(--s1); }
+  .header-controls { width: 100%; justify-content: flex-end; }
 }
 
 /* ── Print ─────────────────────────────────────────────── */
