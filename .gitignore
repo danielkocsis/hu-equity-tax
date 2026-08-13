@@ -1,0 +1,29 @@
+# macOS
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+
+# NAV / reference PDFs — publicly available documents, not stored in repo
+# Download links documented in TAX-ANALYSIS.md
+*.pdf
+
+# Environment / secrets
+.env
+.env.local
+.env.*.local
+
+# Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Node (for any future tooling)
+node_modules/
+npm-debug.log*
+
+# Build output (none expected, but just in case)
+dist/
+build/
