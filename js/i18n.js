@@ -59,6 +59,8 @@ export async function setLang(code) {
   await loadLang(code);
   currentLang = code;
   localStorage.setItem(STORAGE_KEY, code);
+  // Keep the html[lang] attribute in sync for screen readers and browser spell-check.
+  document.documentElement.lang = code;
   renderAll();
 }
 

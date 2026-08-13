@@ -19,7 +19,7 @@ export function getSzochoRate(dateStr, rules) {
       return range.rate;
     }
   }
-  throw new Error(`[tax-engine] No SZOCHO rate found for date ${dateStr} in rules for year ${rules}`);
+  throw new Error(`[tax-engine] No SZOCHO rate found for date ${dateStr}. Check szocho_rates in tax-rules.json.`);
 }
 
 /**
@@ -84,9 +84,12 @@ export function calculateEvent(tx, rules) {
     // ETÜ — Ellenőrzött tőkepiaci ügylet (Szja tv. §67/A)
     // SZJA = 15% on net gain; SZOCHO = 0
     if (tx.lots && tx.lots.length > 0) {
+      // tx.quantity = the number of shares being sold in this transaction.
+      // Must NOT use the sum of lot quantities — that is the total available, not the sold amount.
+      const sell_quantity = tx.quantity ?? tx.lots.reduce((sum, l) => sum + l.quantity, 0);
       const fifo = applyFifo(
         tx.lots,
-        tx.lots.reduce((sum, l) => sum + l.quantity, 0),
+        sell_quantity,
         gross_huf,
         tx.broker_fee_huf ?? 0,
       );
@@ -127,6 +130,9 @@ export function calculateEvent(tx, rules) {
  *   szja_total: number,
  *   szocho_total: number,
  *   tb_total: number,
+ *   equity_tax_base_huf: number,
+ *   dividend_szja: number,
+ *   has_dividends: boolean,
  *   etü_gross_gain: number,
  *   etü_loss_declared: number,
  *   etü_net_gain: number,
@@ -144,6 +150,11 @@ export function aggregateYear(txList, year, rules, priorYearLosses = 0) {
   let szja_total = 0;
   let szocho_total = 0;
   let tb_total = 0;
+  // equity_tax_base_huf: összevont adóalap income (gross × 0.89) for RSU/ESOP/ESPP/SHARE_AWARD.
+  // This is the figure for eSZJA sor 19 — NOT the SZJA tax amount.
+  let equity_tax_base_huf = 0;
+  // dividend_szja: SZJA on dividend income separately tracked for eSZJA sor 182.
+  let dividend_szja = 0;
   let etü_gross_gain = 0;
   let etü_loss_declared = 0;
 
@@ -157,6 +168,7 @@ export function aggregateYear(txList, year, rules, priorYearLosses = 0) {
     if (tx.type === 'DIVIDEND') {
       // Apply SZOCHO dividend cap (Szoctv. — 24 × minimálbér/year)
       szja_total += result.szja_huf;
+      dividend_szja += result.szja_huf;
       const remaining_cap = dividend_szocho_cap - dividend_szocho_used;
       const capped_szocho = Math.min(result.szocho_huf, Math.max(0, remaining_cap));
       dividend_szocho_used += capped_szocho;
@@ -173,9 +185,11 @@ export function aggregateYear(txList, year, rules, priorYearLosses = 0) {
       }
 
     } else {
+      // RSU_VEST, ESOP_EXERCISE, ESPP_PURCHASE, SHARE_AWARD — összevont adóalap
       szja_total += result.szja_huf;
       szocho_total += result.szocho_huf;
       tb_total += result.tb_huf;
+      equity_tax_base_huf += result.tax_base_huf;
     }
   }
 
@@ -196,6 +210,9 @@ export function aggregateYear(txList, year, rules, priorYearLosses = 0) {
     szja_total,
     szocho_total,
     tb_total,
+    equity_tax_base_huf: Math.round(equity_tax_base_huf),
+    dividend_szja: Math.round(dividend_szja),
+    has_dividends: dividend_szja > 0 || dividend_szocho_used > 0,
     etü_gross_gain,
     etü_loss_declared,
     etü_net_gain,

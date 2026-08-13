@@ -77,7 +77,7 @@
     "quarterly_advance_threshold_huf": 10000,
     "late_interest_surcharge": 0.05,
     "mnb_base_rates": [
-      { "from": "2022-01-01", "to": "2022-06-30", "rate": 0.04 },
+      { "from": "2022-01-01", "to": "2022-06-30", "rate": 0.04, "_note": "approximate — MNB raised rates through 2022 H1; use NAV pótlékszámítás for authoritative késedelmi figures" },
       { "from": "2022-07-01", "to": "2022-12-31", "rate": 0.13 }
     ],
     "late_interest_formula": "base_rate_plus_5pp"

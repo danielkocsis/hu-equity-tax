@@ -106,25 +106,66 @@ function initYearSelector() {
 
 /**
  * Wires the "Clear all data" button in the footer.
+ * Uses a two-step in-page confirmation to avoid confirm() (blocked by AGENTS.md).
+ * First click: reveals an inline warning + confirm button.
+ * Second click (confirm): clears all data and reloads.
  */
 function initClearData() {
   const btn = document.getElementById('clear-data-btn');
   if (!btn) return;
 
+  // Build inline confirm UI (hidden by default)
+  const confirmEl = document.createElement('span');
+  confirmEl.id = 'clear-data-confirm';
+  confirmEl.style.cssText = 'display:none;align-items:center;gap:0.5rem;margin-left:0.5rem';
+  confirmEl.setAttribute('role', 'status');
+
+  const confirmMsg = document.createElement('span');
+  confirmMsg.style.cssText = 'font-size:0.8125rem;color:#9b1c1c;font-weight:500';
+
+  const confirmBtn = document.createElement('button');
+  confirmBtn.type = 'button';
+  confirmBtn.className = 'btn btn-danger btn-sm';
+
+  const cancelBtn = document.createElement('button');
+  cancelBtn.type = 'button';
+  cancelBtn.className = 'btn btn-ghost btn-sm';
+
+  confirmEl.append(confirmMsg, confirmBtn, cancelBtn);
+  btn.after(confirmEl);
+
+  /** Renders confirm strip in the current language. */
+  function renderConfirmStrip() {
+    const hu = getLang() === 'hu';
+    confirmMsg.textContent = hu
+      ? 'Biztosan törli az összes adatot?'
+      : 'Delete all saved data?';
+    confirmBtn.textContent = hu ? 'Igen, törlés' : 'Yes, delete';
+    cancelBtn.textContent = hu ? 'Mégsem' : 'Cancel';
+  }
+
   btn.addEventListener('click', () => {
-    const lang = getLang();
-    const msg = lang === 'hu'
-      ? 'Biztosan törli az összes mentett adatot? Ez a művelet nem vonható vissza.'
-      : 'Are you sure you want to clear all saved data? This cannot be undone.';
+    renderConfirmStrip();
+    confirmEl.style.display = 'inline-flex';
+    btn.style.display = 'none';
+  });
 
-    if (!confirm(msg)) return;
-
+  confirmBtn.addEventListener('click', () => {
     clearLedger();
     clearOverrides();
     localStorage.removeItem(ADOID_KEY);
     localStorage.removeItem(MODE_KEY);
-    // Reload to reset all UI state
     window.location.reload();
+  });
+
+  cancelBtn.addEventListener('click', () => {
+    confirmEl.style.display = 'none';
+    btn.style.display = '';
+  });
+
+  // Re-render confirm text when language switches
+  document.addEventListener('lang:changed', () => {
+    if (confirmEl.style.display !== 'none') renderConfirmStrip();
   });
 }
 
@@ -171,8 +212,8 @@ async function init() {
     }
   });
 
-  // 6. Trigger initial render
-  document.dispatchEvent(new CustomEvent('ledger:changed'));
+  // 6. Trigger initial render — deferred so dynamic imports finish registering listeners first.
+  setTimeout(() => document.dispatchEvent(new CustomEvent('ledger:changed')), 0);
 }
 
 document.addEventListener('DOMContentLoaded', init);

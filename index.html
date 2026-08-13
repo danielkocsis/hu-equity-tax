@@ -67,29 +67,29 @@
         <div id="transaction-form-mount"></div>
       </section>
 
-      <!-- Section 3: Transaction ledger (SPEC §6.4) -->
-      <section id="ledger" class="app-section" aria-label="Ledger">
+      <!-- Section 3: Transaction ledger (SPEC §6.4) — shown when ledger has entries -->
+      <section id="ledger" class="app-section hidden" aria-label="Ledger">
         <h2 class="section-heading" data-i18n="section.ledger">Tranzakciónapló</h2>
         <!-- Populated by ui/ledger-table.js -->
         <div id="ledger-table-mount"></div>
       </section>
 
-      <!-- Section 4: Results per tax year (SPEC §6.5) -->
-      <section id="results" class="app-section" aria-label="Results">
+      <!-- Section 4: Results per tax year (SPEC §6.5) — shown when ledger has entries -->
+      <section id="results" class="app-section hidden" aria-label="Results">
         <h2 class="section-heading" data-i18n="section.results">Számítási eredmények</h2>
         <!-- Populated by ui/results-panel.js -->
         <div id="results-panel-mount"></div>
       </section>
 
-      <!-- Section 5: eSZJA mapper (SPEC §6.6) -->
-      <section id="eszja-map" class="app-section" aria-label="eSZJA mapping">
+      <!-- Section 5: eSZJA mapper (SPEC §6.6) — shown when ledger has entries -->
+      <section id="eszja-map" class="app-section hidden" aria-label="eSZJA mapping">
         <h2 class="section-heading" data-i18n="section.eszja_map">eSZJA kitöltési útmutató</h2>
         <!-- Populated by ui/results-panel.js (sub-section) -->
         <div id="eszja-map-mount"></div>
       </section>
 
       <!-- Section 6a: Quarterly advance (current year mode only) (SPEC §6.7) -->
-      <section id="advance" class="app-section" aria-label="Quarterly advance">
+      <section id="advance" class="app-section hidden" aria-label="Quarterly advance">
         <h2 class="section-heading" data-i18n="section.advance">Negyedéves előleg</h2>
         <!-- Populated by ui/advance-panel.js -->
         <div id="advance-panel-mount"></div>
@@ -102,8 +102,8 @@
         <div id="self-audit-panel-mount"></div>
       </section>
 
-      <!-- Section 7: NAV payment cards (SPEC §6.9) -->
-      <section id="payment" class="app-section" aria-label="NAV payment guide">
+      <!-- Section 7: NAV payment cards (SPEC §6.9) — shown when ledger has entries -->
+      <section id="payment" class="app-section hidden" aria-label="NAV payment guide">
         <h2 class="section-heading" data-i18n="section.payment">NAV befizetési útmutató</h2>
         <!-- Populated by ui/payment-guide.js -->
         <div id="payment-guide-mount"></div>

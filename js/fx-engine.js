@@ -30,17 +30,27 @@ const overrides = new Map();
 async function loadYear(year) {
   if (rateCache.has(year)) return rateCache.get(year);
 
+  let resp;
   try {
-    const resp = await fetch(`data/mnb_fx_${year}.json`);
-    if (!resp.ok) {
-      rateCache.set(year, null);
-      return null;
-    }
+    resp = await fetch(`data/mnb_fx_${year}.json`);
+  } catch {
+    // Transient network error — do NOT cache null so the next call can retry.
+    return null;
+  }
+
+  if (!resp.ok) {
+    // File is genuinely absent (e.g. future year not yet generated) — safe to cache.
+    rateCache.set(year, null);
+    return null;
+  }
+
+  try {
     const data = await resp.json();
     rateCache.set(year, data);
     return data;
   } catch {
-    rateCache.set(year, null);
+    // Malformed JSON — do not cache, surface as missing so UI shows manual override.
+    console.warn(`[fx-engine] Malformed JSON in mnb_fx_${year}.json`);
     return null;
   }
 }

@@ -5,24 +5,19 @@
  * SPEC.md §6.9
  */
 
+// NAV treasury accounts — verify annually against nav.gov.hu (TAX-ANALYSIS.md §9)
 const NAV_ACCOUNTS = {
   SZJA: {
     account: '10032000-06056353',
     iban: 'HU16 1003 2000 0605 6353 0000 0000',
-    name_hu_key: 'payment.szja.name',
-    name_en_key: 'payment.szja.name',
   },
   SZOCHO: {
     account: '10032000-06055912',
     iban: 'HU12 1003 2000 0605 5912 0000 0000',
-    name_hu_key: 'payment.szocho.name',
-    name_en_key: 'payment.szocho.name',
   },
   TB: {
     account: '10032000-06058200',
     iban: 'HU22 1003 2000 0605 8200 0000 0000',
-    name_hu_key: 'payment.tb.name',
-    name_en_key: 'payment.tb.name',
   },
 };
 
@@ -61,7 +56,8 @@ export function generateCards(aggregated, year, adoid = '') {
     });
   }
 
-  const total_szocho = (aggregated.szocho_total ?? 0) + (aggregated.dividend_szocho_used ?? 0);
+  // szocho_total already includes dividend SZOCHO (capped) from aggregateYear — do not add again.
+  const total_szocho = aggregated.szocho_total ?? 0;
   if (total_szocho > 0) {
     cards.push({
       tax_type: 'SZOCHO',

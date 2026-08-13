@@ -59,23 +59,23 @@ export async function mapResults(aggregated, year) {
 
   const rows = [];
 
-  // Equity income (RSU/ESOP/ESPP/SHARE_AWARD) — összevont adóalap
-  // Total SZJA includes equity SZJA + ETÜ SZJA; we need the equity portion
-  const equity_szja = aggregated.szja_total - aggregated.etü_szja;
-  if (equity_szja > 0) {
+  // Equity income (RSU/ESOP/ESPP/SHARE_AWARD) — összevont adóalap (sor 19)
+  // eSZJA sor 19 requires the HUF income amount (gross × 0.89), NOT the SZJA tax amount.
+  // equity_tax_base_huf is the összevont adóalap base from aggregateYear.
+  if (aggregated.equity_tax_base_huf > 0) {
     const r = yearSchema.equity_income_row;
     rows.push({
       row_id: r.id,
       form: r.form,
       label_hu: r.label_hu,
       label_en: r.label_en,
-      value_huf: equity_szja,
-      copy_text: formatHuf(equity_szja),
+      value_huf: aggregated.equity_tax_base_huf,
+      copy_text: formatHuf(aggregated.equity_tax_base_huf),
       legal_key: 'eszja.legal.equity',
     });
   }
 
-  // ETÜ gain
+  // ETÜ gain (sor 172d)
   if (aggregated.etü_net_gain > 0) {
     const r = yearSchema.etü_gain_row;
     rows.push({
@@ -89,7 +89,7 @@ export async function mapResults(aggregated, year) {
     });
   }
 
-  // ETÜ tax
+  // ETÜ tax (sor 172e)
   if (aggregated.etü_szja > 0) {
     const r = yearSchema.etü_tax_row;
     rows.push({
@@ -103,7 +103,7 @@ export async function mapResults(aggregated, year) {
     });
   }
 
-  // ETÜ loss — always emit if declared (needed for adókiegyenlítés)
+  // ETÜ loss (sor 172a) — always emit if declared (needed for adókiegyenlítés carry-forward)
   if (aggregated.etü_loss_declared > 0) {
     const r = yearSchema.etü_loss_row;
     rows.push({
@@ -117,29 +117,21 @@ export async function mapResults(aggregated, year) {
     });
   }
 
-  // Foreign dividend
-  if (aggregated.szja_total > 0 && aggregated.dividend_szocho_used >= 0) {
-    // Only emit dividend row if there are dividend events
-    // We approximate: if dividend_szocho_used > 0 or there are dividends in the ledger
-    // A precise check requires the original txList; we expose this through aggregated.has_dividends
-    if (aggregated.has_dividends) {
-      const r = yearSchema.dividend_row;
-      const dividend_szja = aggregated.dividend_szja ?? 0;
-      if (dividend_szja > 0) {
-        rows.push({
-          row_id: r.id,
-          form: r.form,
-          label_hu: r.label_hu,
-          label_en: r.label_en,
-          value_huf: dividend_szja,
-          copy_text: formatHuf(dividend_szja),
-          legal_key: 'eszja.legal.dividend',
-        });
-      }
-    }
+  // Foreign dividend SZJA (sor 182) — uses aggregated.dividend_szja set by aggregateYear
+  if (aggregated.has_dividends && aggregated.dividend_szja > 0) {
+    const r = yearSchema.dividend_row;
+    rows.push({
+      row_id: r.id,
+      form: r.form,
+      label_hu: r.label_hu,
+      label_en: r.label_en,
+      value_huf: aggregated.dividend_szja,
+      copy_text: formatHuf(aggregated.dividend_szja),
+      legal_key: 'eszja.legal.dividend',
+    });
   }
 
-  // SZOCHO on dividends (non-EGT only)
+  // SZOCHO on dividends (non-EGT only) — 09-es lap
   if (aggregated.dividend_szocho_used > 0) {
     const r = yearSchema.szocho_dividend_row;
     rows.push({

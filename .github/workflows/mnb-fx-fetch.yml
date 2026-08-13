@@ -91,6 +91,9 @@ jobs:
               print(f"Inner XML parse error: {e}")
               sys.exit(0)
 
+          # Plausibility bounds for HUF rates (safety net against MITM or malformed data)
+          RATE_BOUNDS = {"USD": (100, 1200), "EUR": (100, 1500), "GBP": (100, 1800)}
+
           # Parse Day elements
           updated = False
           for day_el in inner_root.findall(".//Day"):
@@ -102,9 +105,15 @@ jobs:
                   curr = rate_el.get("curr")
                   text = (rate_el.text or "").strip().replace(",", ".")
                   try:
-                      rates[curr] = float(text)
+                      val = float(text)
                   except ValueError:
-                      pass
+                      continue
+                  # Sanity-check against known plausible HUF ranges
+                  lo, hi = RATE_BOUNDS.get(curr, (10, 5000))
+                  if not (lo <= val <= hi):
+                      print(f"ABORT: suspicious rate {curr}={val} on {day_date} (expected {lo}–{hi})")
+                      sys.exit(1)
+                  rates[curr] = val
               if rates:
                   if day_date not in existing or existing[day_date] != rates:
                       existing[day_date] = rates

@@ -25,9 +25,16 @@ function restore() {
   if (!raw) return;
   try {
     const parsed = JSON.parse(raw);
-    if (Array.isArray(parsed)) {
-      transactions = parsed;
-    }
+    if (!Array.isArray(parsed)) return;
+    // Filter out entries missing required fields to prevent downstream errors.
+    const valid = parsed.filter(tx => {
+      if (typeof tx.id !== 'string' || typeof tx.type !== 'string') {
+        console.warn('[ledger] Skipping malformed entry in localStorage:', tx);
+        return false;
+      }
+      return true;
+    });
+    transactions = valid;
   } catch {
     console.warn('[ledger] Failed to parse localStorage data — starting fresh.');
     transactions = [];

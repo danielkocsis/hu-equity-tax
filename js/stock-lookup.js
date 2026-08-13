@@ -23,11 +23,16 @@ export async function lookupPrice(ticker, dateStr) {
 
   const apiUrl = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(ticker)}?interval=1d&period1=${period1}&period2=${period2}`;
 
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 10_000);
+
   let resp;
   try {
-    resp = await fetch(apiUrl);
+    resp = await fetch(apiUrl, { signal: controller.signal });
   } catch (err) {
     throw new Error(`[stock-lookup] Network error for ticker "${ticker}". Verify manually: ${yahooUrl}`);
+  } finally {
+    clearTimeout(timeoutId);
   }
 
   if (!resp.ok) {
