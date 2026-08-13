@@ -389,20 +389,23 @@ button:focus-visible, .btn:focus-visible {
 #lang-toggle {
   background: var(--gray-100);
   border: 1px solid var(--border);
-  color: var(--gray-700);
-  padding: var(--sp-1) var(--sp-3);
+  padding: var(--sp-1) var(--sp-2);
   border-radius: var(--radius-pill);
-  font-weight: 700;
-  font-size: var(--text-xs);
-  letter-spacing: 0.06em;
+  font-size: 1.25rem;
+  line-height: 1;
   cursor: pointer;
-  transition: all var(--dur-fast) var(--ease);
+  transition: background var(--dur-fast) var(--ease), border-color var(--dur-fast) var(--ease), box-shadow var(--dur-fast) var(--ease);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.25rem;
+  height: 2.25rem;
 }
 
 #lang-toggle:hover {
-  background: var(--brand-500);
-  border-color: var(--brand-500);
-  color: #fff;
+  background: var(--gray-200);
+  border-color: var(--gray-300);
+  box-shadow: var(--shadow-sm);
 }
 
 #mode-toggle {

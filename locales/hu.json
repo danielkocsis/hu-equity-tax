@@ -2,7 +2,6 @@
   "nav.title": "Részvényadó Kalkulátor",
   "nav.subtitle": "Segítség a külföldi részvényjuttatások magyar adózásához",
   "disclaimer": "Ez az eszköz ingyenes, nyílt forráskódú számológép, nem adótanácsadás. Az eredmények pontossága kizárólag a megadott adatokon múlik. Az adóbevallásért és az adófizetésért kizárólag az adózó felel. Könyvelő megerősítése javasolt.",
-  "lang.toggle": "EN",
   "mode.current": "Folyó év",
   "mode.onellenorzes": "Önellenőrzés",
   "mode.toggle.label": "Módváltás",

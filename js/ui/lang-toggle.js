@@ -25,11 +25,19 @@ export function initLangToggle() {
 }
 
 /**
- * Updates the toggle button label to show the language it will switch TO.
+ * Updates the toggle button to show the flag of the language it will switch TO.
+ * HU active → show 🇬🇧 (switch to English)
+ * EN active → show 🇭🇺 (switch to Hungarian)
  * @param {HTMLButtonElement} btn
  * @private
  */
 function updateLabel(btn) {
-  btn.textContent = t('lang.toggle');
-  btn.setAttribute('aria-label', getLang() === 'hu' ? 'Switch to English' : 'Váltás magyarra');
+  const switchingTo = getLang() === 'hu' ? 'en' : 'hu';
+  btn.innerHTML = switchingTo === 'en'
+    ? '<span aria-hidden="true">🇬🇧</span>'
+    : '<span aria-hidden="true">🇭🇺</span>';
+  btn.setAttribute(
+    'aria-label',
+    switchingTo === 'en' ? 'Switch to English' : 'Váltás magyarra',
+  );
 }
