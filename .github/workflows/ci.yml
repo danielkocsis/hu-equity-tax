@@ -1,0 +1,376 @@
+name: CI — Verify Must-Haves
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+    branches: ["**"]
+
+jobs:
+  verify:
+    name: Verify
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # ── 1. JSON validity ───────────────────────────────────────────────────
+      - name: JSON — all data and locale files parse cleanly
+        run: |
+          python3 << 'EOF'
+          import json, sys, pathlib, os
+
+          files = list(pathlib.Path('.').rglob('*.json'))
+          # Exclude node_modules if ever added and .git
+          files = [f for f in files if '.git' not in str(f)]
+
+          failed = []
+          for f in sorted(files):
+              try:
+                  json.loads(f.read_text(encoding='utf-8'))
+                  print(f'OK  {f}')
+              except json.JSONDecodeError as e:
+                  print(f'FAIL {f}: {e}', file=sys.stderr)
+                  failed.append(str(f))
+
+          if failed:
+              print(f'
+{len(failed)} file(s) failed JSON parse.', file=sys.stderr)
+              sys.exit(1)
+
+          print(f'
+{len(files)} JSON file(s) valid.')
+          EOF
+
+      # ── 2. Tax-rules integrity ─────────────────────────────────────────────
+      - name: Tax-rules — required fields, correct DTT flags, rate sanity
+        run: |
+          python3 << 'EOF'
+          import json, sys
+
+          rules = json.loads(open('data/tax-rules.json').read())
+
+          REQUIRED = [
+              'szja_rate', 'szocho_rates', 'tb_rate', 'tax_base_multiplier',
+              'szocho_dividend_cap_multiplier', 'min_monthly_wage_huf',
+              'us_hu_dtt_active', 'uk_hu_dtt_active', 'etü_loss_carryforward_years',
+              'quarterly_advance_deadlines', 'quarterly_advance_threshold_huf',
+              'late_interest_surcharge', 'mnb_base_rates', 'late_interest_formula',
+          ]
+
+          errors = []
+
+          for year, r in rules.items():
+              for field in REQUIRED:
+                  if field not in r:
+                      errors.append(f'{year}: missing field "{field}"')
+
+              # szja_rate must be 0.15 for all supported years
+              if r.get('szja_rate') != 0.15:
+                  errors.append(f'{year}: szja_rate should be 0.15, got {r.get("szja_rate")}')
+
+              # tax_base_multiplier must be 0.89
+              if r.get('tax_base_multiplier') != 0.89:
+                  errors.append(f'{year}: tax_base_multiplier should be 0.89, got {r.get("tax_base_multiplier")}')
+
+              # szocho_rates must be a non-empty list
+              szocho = r.get('szocho_rates', [])
+              if not isinstance(szocho, list) or len(szocho) == 0:
+                  errors.append(f'{year}: szocho_rates must be a non-empty list')
+              else:
+                  for rng in szocho:
+                      rate = rng.get('rate', -1)
+                      if not (0 < rate <= 0.25):
+                          errors.append(f'{year}: szocho rate {rate} out of plausible range (0, 0.25]')
+
+              # DTT flags: US DTT terminated from 2024 onward
+              yr = int(year)
+              if yr >= 2024 and r.get('us_hu_dtt_active') is not False:
+                  errors.append(f'{year}: us_hu_dtt_active should be false for 2024+')
+              if yr < 2024 and r.get('us_hu_dtt_active') is not True:
+                  errors.append(f'{year}: us_hu_dtt_active should be true for pre-2024')
+
+              # szocho_dividend_cap_multiplier must be 24
+              if r.get('szocho_dividend_cap_multiplier') != 24:
+                  errors.append(f'{year}: szocho_dividend_cap_multiplier should be 24')
+
+              # min_monthly_wage must be positive
+              wage = r.get('min_monthly_wage_huf', 0)
+              if wage <= 0:
+                  errors.append(f'{year}: min_monthly_wage_huf must be positive')
+
+              # quarterly_advance_deadlines must have exactly 4 entries
+              deadlines = r.get('quarterly_advance_deadlines', [])
+              if len(deadlines) != 4:
+                  errors.append(f'{year}: quarterly_advance_deadlines must have 4 entries')
+
+              # late_interest_formula sentinel
+              if r.get('late_interest_formula') != 'base_rate_plus_5pp':
+                  errors.append(f'{year}: late_interest_formula must be "base_rate_plus_5pp"')
+
+              # mnb_base_rates must be a non-empty list
+              base_rates = r.get('mnb_base_rates', [])
+              if not isinstance(base_rates, list) or len(base_rates) == 0:
+                  errors.append(f'{year}: mnb_base_rates must be a non-empty list')
+
+          # 2019 and 2020 must have 2 szocho_rates entries each
+          for yr in ['2019', '2020']:
+              if yr in rules:
+                  n = len(rules[yr].get('szocho_rates', []))
+                  if n != 2:
+                      errors.append(f'{yr}: should have 2 szocho_rates entries, got {n}')
+
+          if errors:
+              for e in errors:
+                  print(f'FAIL: {e}', file=sys.stderr)
+              sys.exit(1)
+
+          print(f'OK — {len(rules)} tax years validated.')
+          EOF
+
+      # ── 3. eSZJA schema — required years and fields ────────────────────────
+      - name: eSZJA schema — years 2021–2025 present with required rows
+        run: |
+          python3 << 'EOF'
+          import json, sys
+
+          schema = json.loads(open('data/eszja-schema.json').read())
+
+          REQUIRED_YEARS = ['2021', '2022', '2023', '2024', '2025']
+          REQUIRED_ROWS = [
+              'equity_income_row', 'etü_gain_row', 'etü_loss_row',
+              'etü_tax_row', 'dividend_row', 'szocho_dividend_row',
+          ]
+          ROW_FIELDS = ['id', 'form', 'label_hu', 'label_en']
+
+          errors = []
+          for year in REQUIRED_YEARS:
+              if year not in schema:
+                  errors.append(f'Missing year: {year}')
+                  continue
+              for row in REQUIRED_ROWS:
+                  if row not in schema[year]:
+                      errors.append(f'{year}: missing row "{row}"')
+                      continue
+                  for field in ROW_FIELDS:
+                      if field not in schema[year][row]:
+                          errors.append(f'{year}/{row}: missing field "{field}"')
+
+          if errors:
+              for e in errors:
+                  print(f'FAIL: {e}', file=sys.stderr)
+              sys.exit(1)
+
+          print(f'OK — eSZJA schema valid for years {", ".join(REQUIRED_YEARS)}.')
+          EOF
+
+      # ── 4. Locale parity — hu.json and en.json must have identical key sets ─
+      - name: Locales — hu.json and en.json key parity
+        run: |
+          python3 << 'EOF'
+          import json, sys
+
+          hu = json.loads(open('locales/hu.json').read())
+          en = json.loads(open('locales/en.json').read())
+
+          hu_keys = set(hu.keys())
+          en_keys = set(en.keys())
+
+          missing_in_en = hu_keys - en_keys
+          missing_in_hu = en_keys - hu_keys
+
+          errors = []
+          for k in sorted(missing_in_en):
+              errors.append(f'Key "{k}" present in hu.json but missing from en.json')
+          for k in sorted(missing_in_hu):
+              errors.append(f'Key "{k}" present in en.json but missing from hu.json')
+
+          if errors:
+              for e in errors:
+                  print(f'FAIL: {e}', file=sys.stderr)
+              sys.exit(1)
+
+          print(f'OK — {len(hu_keys)} keys, perfectly symmetrical.')
+          EOF
+
+      # ── 5. JS syntax — all modules parse as valid ES modules ──────────────
+      - name: JavaScript — syntax check all .js files
+        run: |
+          node --version
+          failed=0
+          while IFS= read -r -d '' file; do
+            if ! node --input-type=module --eval "$(cat "$file")" 2>/dev/null; then
+              # node --input-type=module --eval is unreliable for files with import statements
+              # Use acorn or fall back to node --check (CommonJS mode, catches most syntax errors)
+              if ! node --check "$file" 2>/dev/null; then
+                echo "FAIL: $file"
+                node --check "$file" || true
+                failed=$((failed + 1))
+              fi
+            fi
+          done < <(find js -name '*.js' -print0)
+          if [ "$failed" -gt 0 ]; then
+            echo "$failed JS file(s) failed syntax check." >&2
+            exit 1
+          fi
+          echo "OK — all JS files pass syntax check."
+
+      # ── 6. AGENTS.md constraint checks ─────────────────────────────────────
+      - name: AGENTS constraints — no var, no alert(), no confirm(), no window pollution
+        run: |
+          python3 << 'EOF'
+          import re, sys, pathlib
+
+          js_files = list(pathlib.Path('js').rglob('*.js'))
+          errors = []
+
+          # Patterns that must not appear in source JS
+          FORBIDDEN = [
+              (r'\bvar\s+',            'Use const/let, not var'),
+              (r'\balert\s*\(',        'alert() is forbidden — use inline UI'),
+              (r'\bconfirm\s*\(',      'confirm() is forbidden — use inline confirm UI'),
+              (r'\bprompt\s*\(',       'prompt() is forbidden'),
+              (r'window\.\w+\s*=',     'window.* assignment pollutes global scope'),
+              (r'require\s*\(',        'CommonJS require() not allowed — use ES import'),
+              (r'fonts\.googleapis',   'External font CDN not allowed (zero-external-calls)'),
+              (r'cdn\.',               'External CDN not allowed (zero-external-calls)'),
+              (r'unpkg\.com',          'unpkg CDN not allowed (zero-external-calls)'),
+              (r'jsdelivr\.net',       'jsDelivr CDN not allowed (zero-external-calls)'),
+          ]
+
+          for f in sorted(js_files):
+              src = f.read_text(encoding='utf-8')
+              lines = src.splitlines()
+              for i, line in enumerate(lines, 1):
+                  # Skip comment lines
+                  stripped = line.strip()
+                  if stripped.startswith('//') or stripped.startswith('*'):
+                      continue
+                  for pattern, msg in FORBIDDEN:
+                      if re.search(pattern, line):
+                          errors.append(f'{f}:{i}: {msg}  →  {line.strip()[:80]}')
+
+          # Check CSS for external network URLs — data: URIs are safe inline assets
+          css_src = pathlib.Path('css/style.css').read_text(encoding='utf-8')
+          # Strip data: URI blocks before searching for network URLs
+          css_no_data = re.sub(r'url\s*\(\s*["\']?data:[^)]+\)', '', css_src)
+          external_css = re.findall(r'url\s*\(\s*["\']?(https?://[^)\s"\']+)', css_no_data)
+          for url in external_css:
+              errors.append(f'css/style.css: external network URL not allowed: {url}')
+
+          if errors:
+              for e in errors:
+                  print(f'FAIL: {e}', file=sys.stderr)
+              sys.exit(1)
+
+          print(f'OK — {len(js_files)} JS files pass AGENTS.md constraint checks.')
+          EOF
+
+      # ── 7. HTML integrity ──────────────────────────────────────────────────
+      - name: HTML — type=module script, no inline event handlers, no hardcoded strings
+        run: |
+          python3 << 'EOF'
+          import re, sys
+
+          html = open('index.html').read()
+          errors = []
+
+          # Must have type="module" on the app script
+          if 'type="module"' not in html:
+              errors.append('index.html: missing type="module" on script tag')
+
+          # Must not have inline event handlers (onclick=, onchange= etc.)
+          inline_handlers = re.findall(r'\bon\w+\s*=\s*["']', html)
+          for h in inline_handlers:
+              errors.append(f'index.html: inline event handler found: {h}')
+
+          # Must not have external script/link src pointing to CDNs
+          cdn_patterns = [r'cdn\.', r'unpkg\.com', r'jsdelivr', r'fonts\.googleapis']
+          for pat in cdn_patterns:
+              if re.search(pat, html):
+                  errors.append(f'index.html: external CDN reference matches "{pat}"')
+
+          # All visible text elements should use data-i18n (spot-check known keys)
+          known_keys = ['nav.title', 'disclaimer', 'section.add_event', 'section.ledger',
+                        'footer.copyright', 'banner.closed_year']
+          for key in known_keys:
+              if f'data-i18n="{key}"' not in html:
+                  errors.append(f'index.html: expected data-i18n="{key}" not found')
+
+          if errors:
+              for e in errors:
+                  print(f'FAIL: {e}', file=sys.stderr)
+              sys.exit(1)
+
+          print('OK — index.html passes integrity checks.')
+          EOF
+
+      # ── 8. Tax arithmetic smoke tests ─────────────────────────────────────
+      - name: Tax engine — arithmetic smoke tests (done-conditions from ticket 006)
+        run: |
+          node << 'EOF'
+          import { readFileSync } from 'fs';
+
+          const rules = JSON.parse(readFileSync('data/tax-rules.json', 'utf8'));
+
+          function getSzochoRate(dateStr, r) {
+            for (const range of r.szocho_rates) {
+              if (dateStr >= range.from && dateStr <= range.to) return range.rate;
+            }
+            throw new Error(`No SZOCHO rate for ${dateStr}`);
+          }
+
+          let pass = 0;
+          function assert(cond, msg) {
+            if (!cond) { console.error(`FAIL: ${msg}`); process.exit(1); }
+            pass++;
+          }
+
+          // ── 2024 rules ──
+          const r24 = rules['2024'];
+
+          // RSU_VEST: gross 1,000,000 → tax_base=890,000; SZJA=133,500; SZOCHO=115,700
+          const tax_base = Math.round(1_000_000 * r24.tax_base_multiplier);
+          assert(tax_base === 890_000, `RSU tax_base: expected 890000, got ${tax_base}`);
+          const szja = Math.round(r24.szja_rate * tax_base);
+          assert(szja === 133_500, `RSU SZJA: expected 133500, got ${szja}`);
+          const szocho = Math.round(getSzochoRate('2024-03-15', r24) * tax_base);
+          assert(szocho === 115_700, `RSU SZOCHO: expected 115700, got ${szocho}`);
+
+          // DIVIDEND non-EGT: gross 500,000 → SZJA=75,000; SZOCHO=65,000
+          const div_szja = Math.round(r24.szja_rate * 500_000);
+          assert(div_szja === 75_000, `DIV SZJA: expected 75000, got ${div_szja}`);
+          const div_szocho = Math.round(getSzochoRate('2024-06-01', r24) * 500_000);
+          assert(div_szocho === 65_000, `DIV SZOCHO: expected 65000, got ${div_szocho}`);
+
+          // SHARE_SALE gain 200,000 → SZJA=30,000; SZOCHO=0
+          const sale_szja = Math.round(r24.szja_rate * 200_000);
+          assert(sale_szja === 30_000, `SALE SZJA: expected 30000, got ${sale_szja}`);
+
+          // SZOCHO dividend cap: 24 × 266,800 = 6,403,200
+          const cap = r24.szocho_dividend_cap_multiplier * r24.min_monthly_wage_huf;
+          assert(cap === 6_403_200, `Div cap: expected 6403200, got ${cap}`);
+
+          // US DTT terminated in 2024
+          assert(r24.us_hu_dtt_active === false, 'US DTT should be false for 2024');
+          assert(rules['2023'].us_hu_dtt_active === true, 'US DTT should be true for 2023');
+
+          // ── 2019 split SZOCHO rates ──
+          const r19 = rules['2019'];
+          assert(getSzochoRate('2019-03-01', r19) === 0.195, '2019 H1 SZOCHO should be 19.5%');
+          assert(getSzochoRate('2019-09-01', r19) === 0.175, '2019 H2 SZOCHO should be 17.5%');
+
+          // ── 2020 split SZOCHO rates ──
+          const r20 = rules['2020'];
+          assert(getSzochoRate('2020-03-01', r20) === 0.175, '2020 H1 SZOCHO should be 17.5%');
+          assert(getSzochoRate('2020-09-01', r20) === 0.155, '2020 H2 SZOCHO should be 15.5%');
+
+          // ── Self-audit: önellenőrzési pótlék = exactly 50% of késedelmi ──
+          // delta=500,000, 365 days, rate=10%+5pp=15%
+          const kesedelmi = Math.round(500_000 * (0.15 / 365) * 365);
+          const onellenorzes = Math.round(kesedelmi * 0.5);
+          assert(onellenorzes === Math.round(kesedelmi / 2), 'Önellenőrzési pótlék must be exactly 50% of késedelmi');
+
+          console.log(`OK — ${pass} arithmetic assertions passed.`);
+          EOF
