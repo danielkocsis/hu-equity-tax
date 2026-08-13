@@ -63,6 +63,7 @@ html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
   /* Layout */
   --max-w: 860px;
   --header-h: 56px;
+  --disclaimer-h: 34px;  /* approximate single-line disclaimer height */
 
   /* Shape */
   --r: 10px;       /* card radius */
@@ -190,6 +191,39 @@ a:hover { text-decoration: underline; }
   font-size: var(--t-xs);
   color: #78350f;
   line-height: 1.5;
+}
+
+/* ── Closed-year banner ────────────────────────────────── */
+.closed-year-banner {
+  position: sticky;
+  top: calc(var(--header-h) + var(--disclaimer-h));  /* below nav + disclaimer */
+  z-index: 99;
+  background: var(--accent-subtle);
+  border-bottom: 1px solid var(--accent-border);
+  padding: var(--s1) 0;
+}
+
+.closed-year-banner .app-wrapper {
+  display: flex;
+  align-items: center;
+  gap: var(--s1);
+}
+
+.closed-year-icon {
+  flex-shrink: 0;
+  font-size: var(--t-sm);
+  line-height: 1;
+}
+
+.closed-year-banner span {
+  font-size: var(--t-xs);
+  color: #1e3a8a;
+  line-height: 1.5;
+}
+
+.closed-year-banner strong {
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
 }
 
 /* ── Main ──────────────────────────────────────────────── */

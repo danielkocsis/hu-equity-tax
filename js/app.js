@@ -50,15 +50,20 @@ function applyYear(year) {
   currentYear = year;
   currentMode = year === CALENDAR_YEAR ? 'current' : 'onellenorzes';
 
-  const advanceSection  = document.getElementById('advance');
+  const advanceSection   = document.getElementById('advance');
   const selfAuditSection = document.getElementById('self-audit');
+  const closedBanner     = document.getElementById('closed-year-banner');
+  const closedYearLabel  = document.getElementById('closed-year-label');
 
   if (currentMode === 'current') {
     advanceSection?.classList.remove('hidden');
     selfAuditSection?.classList.add('hidden');
+    closedBanner?.classList.add('hidden');
   } else {
     advanceSection?.classList.add('hidden');
     selfAuditSection?.classList.remove('hidden');
+    closedBanner?.classList.remove('hidden');
+    if (closedYearLabel) closedYearLabel.textContent = String(year);
   }
 
   document.dispatchEvent(new CustomEvent('mode:changed', { detail: { mode: currentMode, year: currentYear } }));
