@@ -314,36 +314,6 @@ button:focus-visible, .btn:focus-visible { box-shadow: var(--shadow-focus); }
 }
 #lang-toggle:hover { background: var(--n200); box-shadow: var(--shadow-xs); }
 
-#mode-toggle {
-  font-size: var(--t-xs);
-  font-weight: 500;
-  padding: 0.3rem 0.75rem;
-  border-radius: var(--r-pill);
-  background: var(--n100);
-  border: 1px solid var(--n200);
-  color: var(--n600);
-  cursor: pointer;
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  transition: all var(--fast) var(--ease);
-}
-#mode-toggle::before {
-  content: '';
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: var(--ok);
-  flex-shrink: 0;
-}
-#mode-toggle:hover,
-#mode-toggle[aria-pressed="true"] {
-  background: var(--accent-subtle);
-  border-color: var(--accent-border);
-  color: var(--accent);
-}
-#mode-toggle[aria-pressed="true"]::before { background: var(--accent); }
-
 #year-select {
   appearance: none;
   -webkit-appearance: none;

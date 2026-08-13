@@ -2,6 +2,10 @@
  * App bootstrap — initialises the full application.
  * Ticket 014 — App Bootstrap, Mode Toggle, and Disclaimer
  * SPEC.md §6.1, §6.2, §6.11
+ *
+ * Mode is derived automatically from the selected year:
+ *   current calendar year → 'current'  (shows quarterly advance panel)
+ *   any past year         → 'onellenorzes' (shows self-audit panel)
  */
 
 import { loadLang, renderAll, getLang } from './i18n.js';
@@ -9,15 +13,16 @@ import { initLangToggle } from './ui/lang-toggle.js';
 import { clear as clearLedger } from './ledger.js';
 import { clearOverrides } from './fx-engine.js';
 
-const MODE_KEY = 'hu_equity_tax_mode';
-const YEAR_KEY = 'hu_equity_tax_year';
+const YEAR_KEY  = 'hu_equity_tax_year';
 const ADOID_KEY = 'hu_equity_tax_adoid';
+
+const CALENDAR_YEAR = new Date().getFullYear();
+
+/** @type {number} */
+let currentYear = CALENDAR_YEAR;
 
 /** @type {'current'|'onellenorzes'} */
 let currentMode = 'current';
-
-/** @type {number} — always driven by #year-select */
-let currentYear = new Date().getFullYear();
 
 /**
  * Returns the currently selected tax year.
@@ -28,7 +33,7 @@ export function getSelectedYear() {
 }
 
 /**
- * Returns the current app mode.
+ * Returns the current app mode, derived from the selected year.
  * @returns {'current'|'onellenorzes'}
  */
 export function getMode() {
@@ -36,67 +41,50 @@ export function getMode() {
 }
 
 /**
- * Switches app mode (current year / önellenőrzés).
- * Year is NOT changed here — it is always driven by #year-select.
- * @param {'current'|'onellenorzes'} mode
+ * Derives and applies mode from the selected year.
+ * Current calendar year → 'current' (advance panel visible).
+ * Any past year         → 'onellenorzes' (self-audit panel visible).
+ * @param {number} year
  */
-function applyMode(mode) {
-  currentMode = mode;
-  localStorage.setItem(MODE_KEY, mode);
+function applyYear(year) {
+  currentYear = year;
+  currentMode = year === CALENDAR_YEAR ? 'current' : 'onellenorzes';
 
-  const advanceSection = document.getElementById('advance');
+  const advanceSection  = document.getElementById('advance');
   const selfAuditSection = document.getElementById('self-audit');
-  const modeToggleBtn = document.getElementById('mode-toggle');
 
-  if (mode === 'current') {
+  if (currentMode === 'current') {
     advanceSection?.classList.remove('hidden');
     selfAuditSection?.classList.add('hidden');
-    modeToggleBtn?.setAttribute('aria-pressed', 'false');
   } else {
     advanceSection?.classList.add('hidden');
     selfAuditSection?.classList.remove('hidden');
-    modeToggleBtn?.setAttribute('aria-pressed', 'true');
   }
 
-  document.dispatchEvent(new CustomEvent('mode:changed', { detail: { mode, year: currentYear } }));
+  document.dispatchEvent(new CustomEvent('mode:changed', { detail: { mode: currentMode, year: currentYear } }));
 }
 
 /**
  * Wires the header year selector.
- * Persists the chosen year, updates currentYear, and triggers re-render.
+ * Persists the chosen year and triggers a full re-render.
  */
 function initYearSelect() {
   const select = document.getElementById('year-select');
   if (!select) return;
 
-  // Populate default: restore from localStorage, else current calendar year.
+  // Restore persisted year, validate it exists as an option, else fall back to current year.
   const saved = parseInt(localStorage.getItem(YEAR_KEY) ?? '', 10);
-  const defaultYear = !isNaN(saved) && select.querySelector(`option[value="${saved}"]`)
+  const initial = !isNaN(saved) && select.querySelector(`option[value="${saved}"]`)
     ? saved
-    : new Date().getFullYear();
+    : CALENDAR_YEAR;
 
-  select.value = String(defaultYear);
-  currentYear = defaultYear;
+  select.value = String(initial);
+  applyYear(initial);
 
   select.addEventListener('change', () => {
-    currentYear = parseInt(select.value, 10);
-    localStorage.setItem(YEAR_KEY, String(currentYear));
-    document.dispatchEvent(new CustomEvent('mode:changed', { detail: { mode: currentMode, year: currentYear } }));
-    document.dispatchEvent(new CustomEvent('ledger:changed'));
-  });
-}
-
-/**
- * Wires the mode toggle button.
- */
-function initModeToggle() {
-  const btn = document.getElementById('mode-toggle');
-  if (!btn) return;
-
-  btn.addEventListener('click', () => {
-    const next = currentMode === 'current' ? 'onellenorzes' : 'current';
-    applyMode(next);
-    renderAll();
+    const year = parseInt(select.value, 10);
+    localStorage.setItem(YEAR_KEY, String(year));
+    applyYear(year);
     document.dispatchEvent(new CustomEvent('ledger:changed'));
   });
 }
@@ -131,8 +119,8 @@ function initClearData() {
   function renderConfirmStrip() {
     const hu = getLang() === 'hu';
     confirmMsg.textContent = hu ? 'Biztosan törli az összes adatot?' : 'Delete all saved data?';
-    confirmBtn.textContent = hu ? 'Igen, törlés' : 'Yes, delete';
-    cancelBtn.textContent = hu ? 'Mégsem' : 'Cancel';
+    confirmBtn.textContent  = hu ? 'Igen, törlés' : 'Yes, delete';
+    cancelBtn.textContent   = hu ? 'Mégsem' : 'Cancel';
   }
 
   btn.addEventListener('click', () => {
@@ -145,7 +133,6 @@ function initClearData() {
     clearLedger();
     clearOverrides();
     localStorage.removeItem(ADOID_KEY);
-    localStorage.removeItem(MODE_KEY);
     localStorage.removeItem(YEAR_KEY);
     window.location.reload();
   });
@@ -172,18 +159,13 @@ async function init() {
   // 2. Lang toggle
   initLangToggle();
 
-  // 3. Year selector (must run before applyMode so currentYear is set)
+  // 3. Year selector (derives mode automatically)
   initYearSelect();
 
-  // 4. Mode (restore persisted, default current)
-  const savedMode = localStorage.getItem(MODE_KEY);
-  applyMode(savedMode === 'onellenorzes' ? 'onellenorzes' : 'current');
-
-  // 5. Other controls
-  initModeToggle();
+  // 4. Other controls
   initClearData();
 
-  // 6. UI modules (stubs for tickets 008–012)
+  // 5. UI modules (stubs for tickets 008–012)
   const uiModules = await Promise.allSettled([
     import('./ui/transaction-form.js').then(m => m.initTransactionForm?.()),
     import('./ui/ledger-table.js').then(m => m.initLedgerTable?.()),
@@ -199,7 +181,7 @@ async function init() {
     }
   });
 
-  // 7. Initial render — deferred so dynamic imports finish registering first
+  // 6. Initial render — deferred so dynamic imports finish registering first
   setTimeout(() => document.dispatchEvent(new CustomEvent('ledger:changed')), 0);
 }
 
