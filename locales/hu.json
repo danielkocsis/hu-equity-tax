@@ -150,5 +150,5 @@
   "footer.copyright": "Ingyenesen használható személyes adószámításhoz. Kereskedelmi terjesztés tilos. © danielkocsis, CC BY-NC 4.0.",
   "error.fetch_failed": "Adatlekérés sikertelen. Kérjük, ellenőrizze az internetkapcsolatát.",
   "error.mnb_unavailable": "Az MNB árfolyam nem érhető el erre a dátumra. Kérjük, adja meg kézzel.",
-  "error.yahoo_failed": "A részvényár lekérdezése sikertelen. Kérjük, ellenőrizze a tickert és adja meg kézzel."
+  "error.yahoo_failed": "A böngészőből történő árfolyam-lekérés nem lehetséges (a Yahoo Finance blokkolja a közvetlen API-hozzáférést). Keresse meg a záróárfolyamot az alábbi hivatkozáson, és adja meg kézzel."
 }

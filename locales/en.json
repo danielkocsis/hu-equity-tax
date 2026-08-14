@@ -150,5 +150,5 @@
   "footer.copyright": "Free to use for personal tax calculation. Not for commercial redistribution. © danielkocsis, CC BY-NC 4.0.",
   "error.fetch_failed": "Data fetch failed. Please check your internet connection.",
   "error.mnb_unavailable": "MNB rate not available for this date. Please enter manually.",
-  "error.yahoo_failed": "Share price lookup failed. Please check the ticker and enter manually."
+  "error.yahoo_failed": "Price lookup is unavailable from the browser (Yahoo Finance blocks direct API access). Use the link below to look up the closing price manually and enter it above."
 }

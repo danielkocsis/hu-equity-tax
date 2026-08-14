@@ -97,7 +97,7 @@ Employers typically provide only generic guidance. Hiring an accountant is costl
 
 **FX:**
 - MNB official rates auto-fetched for 2016–present (GitHub Actions daily cron)
-- Pre-2016 dates: manual entry with direct link to `https://www.mnb.hu/arfolyamok`
+- Pre-2016 dates: manual entry with direct link to `https://www.mnb.hu/arfolyam-lekerdezes`
 - Stale-data warning; manual override always visible and editable
 - UI always shows the exact date used (with fallback explanation) + "Verify on MNB →" link
 - Bilingual liability note always displayed: *"Kényelmi funkció. A helyes árfolyam megadásáért Ön felel."*
@@ -201,7 +201,7 @@ These rules apply to every screen and component:
 - Currency: USD / EUR / GBP / Other
 - Gross foreign amount (label adapts per event type)
 - MNB rate (auto-filled; shows "Rate as of [date_used]" or "⚠️ Fallback from [date_used] — no rate published on [requested_date]")
-  - Always accompanied by: **"Verify on MNB website →"** link to `https://www.mnb.hu/arfolyamok` (new tab)
+  - Always accompanied by: **"Verify on MNB website →"** link to `https://www.mnb.hu/arfolyam-lekerdezes` (new tab)
   - Always accompanied by: *"Kényelmi funkció. A helyes árfolyam megadásáért Ön felel. / Convenience feature. You are responsible for the correct rate."*
   - Override input always visible and editable — never collapsed or hidden
 - Broker fee in HUF (optional; shown for SHARE_SALE and ESOP_EXERCISE)
