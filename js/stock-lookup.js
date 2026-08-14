@@ -9,7 +9,7 @@
  */
 
 /** True when running on Vercel (or any http/https origin); false for local file:// dev. */
-const USE_PROXY = window.location.protocol !== 'file:';
+const USE_PROXY = (typeof window !== 'undefined') && window.location?.protocol !== 'file:';
 
 // ── Local dev fallback ──────────────────────────────────────────────────────
 // Used only when USE_PROXY is false (file:// protocol).

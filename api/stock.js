@@ -9,7 +9,7 @@
  * AGENTS.md constraint: no require(), no npm packages.
  */
 
-const TICKER_RE = /^[A-Z0-9.\-^=]{1,12}$/i;
+const TICKER_RE = /^[A-Z0-9.^=-]{1,12}$/i;
 const DATE_RE   = /^\d{4}-\d{2}-\d{2}$/;
 
 /** Hard timeout in ms — leaves headroom for cold start + two sequential Yahoo fetches. */
@@ -43,7 +43,8 @@ async function fetchYahoo(url, signal) {
     const resp = await fetch(url, { signal });
     if (!resp.ok) return null;
     return await resp.json();
-  } catch {
+  } catch (err) {
+    if (err.name === 'AbortError') throw err; // propagate timeout to outer handler
     return null;
   }
 }

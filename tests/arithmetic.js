@@ -9,6 +9,7 @@
 import { readFileSync } from "fs";
 import { fileURLToPath } from "url";
 import { dirname, join } from "path";
+import { escapeHtml } from "../js/utils.js";
 
 // C-1 fix: resolve paths relative to this file, not process.cwd()
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -220,6 +221,22 @@ assertTrue(fifo.gain_huf > 0, `gain_huf = ${fifo.gain_huf} (positive after fee)`
 // Edge: sell_quantity > available lots — warns, gain may be wrong but no crash
 const overSell = applyFifo(lots, 200, 5_000_000, 0);
 assertTrue(overSell.remaining_lots.length === 0, "over-sell: all lots consumed");
+
+// ── escapeHtml (js/utils.js) ──────────────────────────────────────────────────
+
+console.log('\nescapeHtml (js/utils.js)');
+console.log('─'.repeat(44));
+assertEq(escapeHtml('<script>'),          '&lt;script&gt;',       'escapes < and >');
+assertEq(escapeHtml('a & b'),             'a &amp; b',            'escapes &');
+assertEq(escapeHtml('"quoted"'),          '&quot;quoted&quot;',   'escapes double quotes');
+assertEq(escapeHtml("it's"),              'it&#39;s',             'escapes single quotes');
+assertEq(escapeHtml('<img src=x onerror=alert(1)>'),
+                                          '&lt;img src=x onerror=alert(1)&gt;',
+                                          'full XSS payload escaped');
+assertEq(escapeHtml('safe string 123'),   'safe string 123',      'safe strings pass through');
+assertEq(escapeHtml(null),                '',                      'null → empty string');
+assertEq(escapeHtml(undefined),           '',                      'undefined → empty string');
+assertEq(escapeHtml(42),                  '42',                   'numbers coerced to string');
 
 // ── Summary ───────────────────────────────────────────────────────────────────
 

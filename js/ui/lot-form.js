@@ -169,7 +169,10 @@ function createLotRow(lot, saleCurrency) {
   qtyGroup.appendChild(qtyInput);
   fields.appendChild(qtyGroup);
 
-  // Hidden currency (saleCurrency is enum-validated by ledger restore())
+  // Hidden currency. saleCurrency originates from either:
+  //   a) ledger restore() — enum-validated against VALID_CURRENCIES, or
+  //   b) the transaction form <select> — constrained to known values by HTML.
+  // Both paths are safe; the comment documents the assumption explicitly.
   const currencyHidden = document.createElement('input');
   currencyHidden.type = 'hidden';
   currencyHidden.className = 'lot-currency';

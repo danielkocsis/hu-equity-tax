@@ -5,6 +5,13 @@
 
 const STORAGE_KEY = 'hu_equity_tax_ledger';
 
+// Enum whitelists used by restore() to reject crafted localStorage values.
+// Module-level so they are created once, not on every restore() call.
+const VALID_TYPES      = new Set(['RSU_VEST', 'ESOP_EXERCISE', 'ESPP_PURCHASE', 'SHARE_AWARD', 'SHARE_SALE', 'DIVIDEND']);
+const VALID_CURRENCIES = new Set(['USD', 'EUR', 'GBP']);
+const VALID_COUNTRIES  = new Set(['US', 'UK', 'EU', 'OTHER']);
+const DATE_RE          = /^\d{4}-\d{2}-\d{2}$/;
+
 /** @type {Array<Object>} */
 let transactions = [];
 
@@ -29,11 +36,6 @@ function restore() {
     // Filter out entries missing required fields or carrying unknown enum values.
     // This is the root-cause XSS guard: unknown string values must never reach
     // innerHTML rendering paths downstream.
-    const VALID_TYPES      = new Set(['RSU_VEST', 'ESOP_EXERCISE', 'ESPP_PURCHASE', 'SHARE_AWARD', 'SHARE_SALE', 'DIVIDEND']);
-    const VALID_CURRENCIES = new Set(['USD', 'EUR', 'GBP']);
-    const VALID_COUNTRIES  = new Set(['US', 'UK', 'EU', 'OTHER']);
-    const DATE_RE          = /^\d{4}-\d{2}-\d{2}$/;
-
     const valid = parsed.filter(tx => {
       if (typeof tx.id !== 'string' || typeof tx.type !== 'string') {
         console.warn('[ledger] Skipping malformed entry in localStorage:', tx);
