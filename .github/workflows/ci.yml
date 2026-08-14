@@ -28,3 +28,26 @@ jobs:
 
       - name: Tax arithmetic smoke tests
         run: node tests/arithmetic.js
+
+      - name: Critical URL liveness (MNB · NAV)
+        continue-on-error: true
+        run: |
+          URLS=(
+            "https://www.mnb.hu/arfolyam-lekerdezes"
+            "https://nav.gov.hu/ugyfeliranytu/eljarasi_kerdesek/Kalkulatorok/potlekszamitas"
+            "https://net.jogtar.hu/"
+          )
+          FAILED=0
+          for url in "${URLS[@]}"; do
+            STATUS=$(curl --silent --max-time 10 --head --write-out "%{http_code}" --output /dev/null "$url" || echo "000")
+            if [ "$STATUS" = "200" ] || [ "$STATUS" = "301" ] || [ "$STATUS" = "302" ] || [ "$STATUS" = "303" ]; then
+              echo "  ✓ $url ($STATUS)"
+            else
+              echo "  ✗ $url returned $STATUS — URL may have changed"
+              FAILED=$((FAILED + 1))
+            fi
+          done
+          if [ "$FAILED" -gt 0 ]; then
+            echo "WARNING: $FAILED URL(s) unreachable. Update verify links in AGENTS.md and SPEC.md."
+            exit 1
+          fi

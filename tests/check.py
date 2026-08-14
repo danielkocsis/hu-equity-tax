@@ -3,13 +3,17 @@ HU-EquityTax -- static verification suite
 Run from the repo root:  python3 tests/check.py
 
 Checks:
-  1. JSON validity          -- all *.json files parse
-  2. Tax-rules integrity    -- required fields, correct rates and DTT flags
-  3. eszja-schema           -- required years and row types present
-  4. Locale parity          -- hu.json and en.json have identical key sets
-  5. JS syntax              -- all js/**/*.js pass `node --check`
-  6. AGENTS.md constraints  -- no var/alert/confirm/require/CDN in JS or CSS
-  7. HTML integrity         -- type=module, no inline handlers, data-i18n keys present
+  1.  JSON validity          -- all *.json files parse
+  2.  Tax-rules integrity    -- required fields, correct rates and DTT flags
+  3.  eszja-schema           -- required years and row types present
+  4.  Locale parity          -- hu.json and en.json have identical key sets
+  5.  JS syntax              -- all js/**/*.js + api/stock.js pass `node --check`
+  6.  AGENTS.md constraints  -- no var/alert/confirm/require/CDN in JS or CSS
+  7.  HTML integrity         -- type=module, no inline handlers, data-i18n keys present
+  8.  Vercel artefacts       -- api/stock.js contract + vercel.json catch-all
+  9.  XSS guard              -- no raw localStorage field interpolation in innerHTML
+  10. MNB FX data schema     -- mnb_fx_*.json entries are well-formed and plausible
+  11. HTML i18n roundtrip    -- every data-i18n key in HTML exists in both locale files
 """
 
 import json
@@ -217,9 +221,12 @@ if section_passed(baseline):
 
 section("5 . JavaScript syntax (node --check)")
 
+# js/**/*.js + api/stock.js (serverless function lives outside js/)
 js_files = sorted((ROOT / "js").rglob("*.js"))
+api_js   = ROOT / "api" / "stock.js"
+all_js_files = js_files + ([api_js] if api_js.exists() else [])
 
-for f in js_files:
+for f in all_js_files:
     res = subprocess.run(["node", "--check", str(f)], capture_output=True)
     if res.returncode != 0:
         first_line = res.stderr.decode().strip().splitlines()[0]
@@ -246,7 +253,7 @@ FORBIDDEN_JS = [
 
 baseline = failures_before()
 
-for f in js_files:
+for f in all_js_files:
     lines = f.read_text(encoding="utf-8").splitlines()
     for lineno, line in enumerate(lines, start=1):
         s = line.strip()
@@ -266,7 +273,7 @@ for url in re.findall(r"url\s*\(\s*[\x22\x27]?(https?://[^\s)\x22\x27]+)", css_n
     fail("css/style.css: external network URL -- " + url)
 
 if section_passed(baseline):
-    ok(str(len(js_files)) + " JS files and CSS -- no constraint violations")
+    ok(str(len(all_js_files)) + " JS files and CSS -- no constraint violations")
 
 # ---------------------------------------------------------------------------
 # 7. HTML integrity
@@ -413,6 +420,95 @@ for f in ui_js_files:
 
 if section_passed(baseline):
     ok("No raw localStorage field interpolation in innerHTML templates")
+
+# ---------------------------------------------------------------------------
+# 10. MNB FX data schema
+# ---------------------------------------------------------------------------
+
+section("10 . MNB FX data schema")
+
+baseline = failures_before()
+
+FX_CURRENCIES = {"USD", "EUR", "GBP"}
+FX_RATE_BOUNDS = {"USD": (100, 1200), "EUR": (100, 1500), "GBP": (100, 1800)}
+DATE_PATTERN   = re.compile(r"^\d{4}-\d{2}-\d{2}$")
+
+mnb_files = sorted((ROOT / "data").glob("mnb_fx_*.json"))
+
+if not mnb_files:
+    ok("No mnb_fx_*.json files yet (cron has not run) — skipping")
+else:
+    for mf in mnb_files:
+        try:
+            fx_data = json.loads(mf.read_text(encoding="utf-8"))
+        except json.JSONDecodeError as e:
+            fail(str(mf.relative_to(ROOT)) + ": invalid JSON — " + str(e))
+            continue
+
+        if not isinstance(fx_data, dict):
+            fail(str(mf.relative_to(ROOT)) + ": top-level must be an object")
+            continue
+
+        for date_key, rates in fx_data.items():
+            prefix = str(mf.relative_to(ROOT)) + "[" + date_key + "]"
+
+            if not DATE_PATTERN.match(date_key):
+                fail(prefix + ": key is not YYYY-MM-DD")
+                continue
+
+            if not isinstance(rates, dict):
+                fail(prefix + ": value must be an object of currency→rate")
+                continue
+
+            missing = FX_CURRENCIES - rates.keys()
+            if missing:
+                fail(prefix + ": missing currencies " + str(missing))
+
+            for curr, val in rates.items():
+                if curr not in FX_CURRENCIES:
+                    fail(prefix + ": unexpected currency " + curr)
+                    continue
+                if not isinstance(val, (int, float)):
+                    fail(prefix + ": " + curr + " rate is not a number")
+                    continue
+                lo, hi = FX_RATE_BOUNDS[curr]
+                if not (lo <= val <= hi):
+                    fail(prefix + ": " + curr + " rate " + str(val)
+                         + " outside plausible range " + str(lo) + "–" + str(hi))
+
+        ok(str(mf.relative_to(ROOT)) + ": schema valid")
+
+    if section_passed(baseline):
+        ok(str(len(mnb_files)) + " mnb_fx_*.json file(s) — all entries valid")
+
+# ---------------------------------------------------------------------------
+# 11. HTML data-i18n → locale roundtrip
+# ---------------------------------------------------------------------------
+
+section("11 . HTML data-i18n → locale roundtrip")
+
+baseline = failures_before()
+
+html_src = (ROOT / "index.html").read_text(encoding="utf-8")
+html_keys = set(re.findall(r'data-i18n="([^"]+)"', html_src))
+
+try:
+    en_full = json.loads((ROOT / "locales" / "en.json").read_text(encoding="utf-8"))
+except Exception:
+    en_full = {}
+try:
+    hu_full = json.loads((ROOT / "locales" / "hu.json").read_text(encoding="utf-8"))
+except Exception:
+    hu_full = {}
+
+for key in sorted(html_keys):
+    if key not in en_full:
+        fail("data-i18n key \"" + key + "\" in index.html missing from en.json")
+    if key not in hu_full:
+        fail("data-i18n key \"" + key + "\" in index.html missing from hu.json")
+
+if section_passed(baseline):
+    ok(str(len(html_keys)) + " data-i18n keys in HTML all present in both locales")
 
 # ---------------------------------------------------------------------------
 # Summary
