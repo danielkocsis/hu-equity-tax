@@ -143,13 +143,13 @@ function createLotRow(lot, saleCurrency) {
   const dateLabel = document.createElement('label');
   dateLabel.className = 'field-label';
   dateLabel.textContent = t('form.lot.vest_date');
-  const dateInput = document.createElement('input');
-  dateInput.type = 'date';
-  dateInput.className = 'input lot-vest-date';
-  dateInput.required = true;
-  dateInput.value = lot.vestDate;
+  const dateEl = document.createElement('input');
+  dateEl.type = 'date';
+  dateEl.className = 'input lot-vest-date';
+  dateEl.required = true;
+  dateEl.value = lot.vestDate;
   dateGroup.appendChild(dateLabel);
-  dateGroup.appendChild(dateInput);
+  dateGroup.appendChild(dateEl);
   fields.appendChild(dateGroup);
 
   // Quantity
@@ -158,15 +158,15 @@ function createLotRow(lot, saleCurrency) {
   const qtyLabel = document.createElement('label');
   qtyLabel.className = 'field-label';
   qtyLabel.textContent = t('form.lot.quantity');
-  const qtyInput = document.createElement('input');
-  qtyInput.type = 'number';
-  qtyInput.className = 'input lot-quantity';
-  qtyInput.min = '0.0001';
-  qtyInput.step = 'any';
-  qtyInput.required = true;
-  qtyInput.value = lot.quantity || '';
+  const qtyEl = document.createElement('input');
+  qtyEl.type = 'number';
+  qtyEl.className = 'input lot-quantity';
+  qtyEl.min = '0.0001';
+  qtyEl.step = 'any';
+  qtyEl.required = true;
+  qtyEl.value = lot.quantity || '';
   qtyGroup.appendChild(qtyLabel);
-  qtyGroup.appendChild(qtyInput);
+  qtyGroup.appendChild(qtyEl);
   fields.appendChild(qtyGroup);
 
   // Hidden currency. saleCurrency originates from either:
@@ -185,15 +185,15 @@ function createLotRow(lot, saleCurrency) {
   const fmvLabel = document.createElement('label');
   fmvLabel.className = 'field-label';
   fmvLabel.textContent = `${t('form.lot.fmv_at_vest')} (${saleCurrency})`;
-  const fmvInput = document.createElement('input');
-  fmvInput.type = 'number';
-  fmvInput.className = 'input lot-fmv';
-  fmvInput.min = '0.0001';
-  fmvInput.step = 'any';
-  fmvInput.required = true;
-  fmvInput.value = lot.fmv || '';
+  const fmvEl = document.createElement('input');
+  fmvEl.type = 'number';
+  fmvEl.className = 'input lot-fmv';
+  fmvEl.min = '0.0001';
+  fmvEl.step = 'any';
+  fmvEl.required = true;
+  fmvEl.value = lot.fmv || '';
   fmvGroup.appendChild(fmvLabel);
-  fmvGroup.appendChild(fmvInput);
+  fmvGroup.appendChild(fmvEl);
   fields.appendChild(fmvGroup);
 
   // MNB rate
@@ -213,18 +213,18 @@ function createLotRow(lot, saleCurrency) {
   const rateNote = document.createElement('p');
   rateNote.className = 'liability-note';
   rateNote.textContent = t('form.mnb_rate.liability_note');
-  const rateOverride = document.createElement('input');
-  rateOverride.type = 'number';
-  rateOverride.className = 'input lot-rate-override';
-  rateOverride.min = '0.0001';
-  rateOverride.step = 'any';
-  rateOverride.placeholder = t('form.mnb_rate.override_label');
-  rateOverride.value = lot.mnbRate || '';
+  const rateOverrideEl = document.createElement('input');
+  rateOverrideEl.type = 'number';
+  rateOverrideEl.className = 'input lot-rate-override';
+  rateOverrideEl.min = '0.0001';
+  rateOverrideEl.step = 'any';
+  rateOverrideEl.placeholder = t('form.mnb_rate.override_label');
+  rateOverrideEl.value = lot.mnbRate || '';
   rateGroup.appendChild(rateLabel);
   rateGroup.appendChild(rateStatus);
   rateGroup.appendChild(rateLink);
   rateGroup.appendChild(rateNote);
-  rateGroup.appendChild(rateOverride);
+  rateGroup.appendChild(rateOverrideEl);
   fields.appendChild(rateGroup);
 
   // Cost basis display
