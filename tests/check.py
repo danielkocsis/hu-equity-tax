@@ -8,6 +8,7 @@ Checks:
   3.  eszja-schema           -- required years and row types present
   4.  Locale parity          -- hu.json and en.json have identical key sets
   5.  JS syntax              -- all js/**/*.js + api/stock.js pass `node --check`
+  5b. Duplicate declarations -- no duplicate const/let of the same name in a file
   6.  AGENTS.md constraints  -- no var/alert/confirm/require/CDN in JS or CSS
   7.  HTML integrity         -- type=module, no inline handlers, data-i18n keys present
   8.  Vercel artefacts       -- api/stock.js contract + vercel.json catch-all
@@ -233,6 +234,60 @@ for f in all_js_files:
         fail(str(f.relative_to(ROOT)) + ": " + first_line)
     else:
         ok(str(f.relative_to(ROOT)))
+
+# ---------------------------------------------------------------------------
+# 5b. Duplicate const/let declarations (catches runtime SyntaxError in functions)
+# ---------------------------------------------------------------------------
+# `node --check` is a parse-only check and does not detect duplicate `const x`
+# declarations inside function bodies (those are runtime errors, not parse errors).
+# This section uses a static heuristic: if the same identifier is declared with
+# const/let more than once in a file it is almost always a bug.
+#
+# False-positive guard: the same name in different files is fine; we only flag
+# when the count within a SINGLE file exceeds 1.
+
+section("5b. Duplicate const/let declarations")
+
+# Targets the specific bug class: a const declared via createElement/createEl
+# AND again via querySelector in the same file (different scopes, same name).
+# A file-level scan cannot track block scope without a full AST, so we use a
+# two-set intersection: names that appear as BOTH a createElement target AND a
+# querySelector target in the same file are almost certainly bugs.
+CREATE_RE    = re.compile(r"^\s*const\s+([A-Za-z_$][A-Za-z0-9_$]*)\s*=\s*document\.create")
+QUERY_RE     = re.compile(r"^\s*const\s+([A-Za-z_$][A-Za-z0-9_$]*)\s*=\s*\w+\.querySelector")
+
+baseline = failures_before()
+
+for f in all_js_files:
+    src = f.read_text(encoding="utf-8")
+    lines = src.splitlines()
+
+    created  = {}   # name → [lineno]
+    queried  = {}   # name → [lineno]
+
+    for lineno, line in enumerate(lines, start=1):
+        s = line.strip()
+        if s.startswith("//") or s.startswith("*"):
+            continue
+        m = CREATE_RE.match(line)
+        if m:
+            created.setdefault(m.group(1), []).append(lineno)
+            continue
+        m = QUERY_RE.match(line)
+        if m:
+            queried.setdefault(m.group(1), []).append(lineno)
+
+    conflicts = set(created) & set(queried)
+    for name in sorted(conflicts):
+        fail(
+            str(f.relative_to(ROOT)) + ": const '" + name + "' declared as "
+            "both createElement (line " + str(created[name][0]) + ") and "
+            "querySelector (line " + str(queried[name][0]) + ") — "
+            "rename the build-phase variable to avoid runtime SyntaxError"
+        )
+
+if section_passed(baseline):
+    ok("No createElement/querySelector const name conflicts")
 
 # ---------------------------------------------------------------------------
 # 6. AGENTS.md constraints
