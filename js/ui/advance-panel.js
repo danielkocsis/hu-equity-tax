@@ -110,13 +110,23 @@ async function render(mount) {
 
     for (const entry of schedule) {
       const tr = document.createElement('tr');
-      tr.innerHTML = `
-        <td>${entry.quarter}</td>
-        <td>${entry.period_label}</td>
-        <td>${entry.deadline_iso}</td>
-        <td class="num">${huf(entry.szja_due)}</td>
-        <td class="num">${huf(entry.szocho_due)}</td>
-      `;
+      const quarterTd = document.createElement('td');
+      quarterTd.textContent = entry.quarter;
+      const periodTd = document.createElement('td');
+      periodTd.textContent = entry.period_label;
+      const deadlineTd = document.createElement('td');
+      deadlineTd.textContent = entry.deadline_iso;
+      const szjaTd = document.createElement('td');
+      szjaTd.className = 'num';
+      szjaTd.textContent = huf(entry.szja_due);
+      const szochoTd = document.createElement('td');
+      szochoTd.className = 'num';
+      szochoTd.textContent = huf(entry.szocho_due);
+      tr.appendChild(quarterTd);
+      tr.appendChild(periodTd);
+      tr.appendChild(deadlineTd);
+      tr.appendChild(szjaTd);
+      tr.appendChild(szochoTd);
       tbody.appendChild(tr);
     }
 

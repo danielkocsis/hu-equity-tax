@@ -374,6 +374,47 @@ if section_passed(baseline):
     ok("Vercel artefacts — all constraints satisfied")
 
 # ---------------------------------------------------------------------------
+# 9. XSS — no raw localStorage field interpolation in innerHTML templates
+# ---------------------------------------------------------------------------
+
+section("9 . XSS — raw field interpolation guard")
+
+# Patterns that must NOT appear unescaped inside innerHTML template literals
+# in UI files. Each tuple is (regex_pattern, human_description).
+XSS_FORBIDDEN = [
+    (r"\$\{tx\.date",           "tx.date interpolated raw (use escapeHtml)"),
+    (r"\$\{tx\.currency",       "tx.currency interpolated raw (use escapeHtml)"),
+    (r"\$\{tx\.type",           "tx.type interpolated raw (use escapeHtml)"),
+    (r"\$\{tx\.source_country", "tx.source_country interpolated raw (use escapeHtml)"),
+    (r"\$\{lot\.vestDate",      "lot.vestDate interpolated raw (use el.value =)"),
+]
+
+baseline = failures_before()
+
+ui_js_files = sorted((ROOT / "js" / "ui").rglob("*.js"))
+
+for f in ui_js_files:
+    src = f.read_text(encoding="utf-8")
+    # Only check files that actually use innerHTML
+    if "innerHTML" not in src:
+        continue
+    lines = src.splitlines()
+    for lineno, line in enumerate(lines, start=1):
+        stripped = line.strip()
+        # Skip comment lines
+        if stripped.startswith("//") or stripped.startswith("*"):
+            continue
+        for pat, lbl in XSS_FORBIDDEN:
+            if re.search(pat, line) and "escapeHtml" not in line:
+                fail(
+                    str(f.relative_to(ROOT)) + ":" + str(lineno) + ": " + lbl
+                    + "\n    " + stripped[:120]
+                )
+
+if section_passed(baseline):
+    ok("No raw localStorage field interpolation in innerHTML templates")
+
+# ---------------------------------------------------------------------------
 # Summary
 # ---------------------------------------------------------------------------
 

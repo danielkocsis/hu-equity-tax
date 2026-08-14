@@ -26,10 +26,33 @@ function restore() {
   try {
     const parsed = JSON.parse(raw);
     if (!Array.isArray(parsed)) return;
-    // Filter out entries missing required fields to prevent downstream errors.
+    // Filter out entries missing required fields or carrying unknown enum values.
+    // This is the root-cause XSS guard: unknown string values must never reach
+    // innerHTML rendering paths downstream.
+    const VALID_TYPES      = new Set(['RSU_VEST', 'ESOP_EXERCISE', 'ESPP_PURCHASE', 'SHARE_AWARD', 'SHARE_SALE', 'DIVIDEND']);
+    const VALID_CURRENCIES = new Set(['USD', 'EUR', 'GBP']);
+    const VALID_COUNTRIES  = new Set(['US', 'UK', 'EU', 'OTHER']);
+    const DATE_RE          = /^\d{4}-\d{2}-\d{2}$/;
+
     const valid = parsed.filter(tx => {
       if (typeof tx.id !== 'string' || typeof tx.type !== 'string') {
         console.warn('[ledger] Skipping malformed entry in localStorage:', tx);
+        return false;
+      }
+      if (!VALID_TYPES.has(tx.type)) {
+        console.warn('[ledger] Skipping entry with unknown type:', tx.type);
+        return false;
+      }
+      if (tx.currency != null && !VALID_CURRENCIES.has(tx.currency)) {
+        console.warn('[ledger] Skipping entry with unknown currency:', tx.currency);
+        return false;
+      }
+      if (tx.date != null && !DATE_RE.test(tx.date)) {
+        console.warn('[ledger] Skipping entry with malformed date:', tx.date);
+        return false;
+      }
+      if (tx.source_country != null && !VALID_COUNTRIES.has(tx.source_country)) {
+        console.warn('[ledger] Skipping entry with unknown source_country:', tx.source_country);
         return false;
       }
       return true;

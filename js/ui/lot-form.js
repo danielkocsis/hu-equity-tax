@@ -132,35 +132,119 @@ function createLotRow(lot, saleCurrency) {
   row.className = 'lot-row';
   row.dataset.lotId = String(lot.id);
 
-  row.innerHTML = `
-    <div class="lot-row-fields">
-      <div class="field-group">
-        <label class="field-label">${t('form.lot.vest_date')}</label>
-        <input type="date" class="input lot-vest-date" value="${lot.vestDate}" required>
-      </div>
-      <div class="field-group">
-        <label class="field-label">${t('form.lot.quantity')}</label>
-        <input type="number" class="input lot-quantity" min="0.0001" step="any" value="${lot.quantity || ''}" required>
-      </div>
-      <input type="hidden" class="lot-currency" value="${saleCurrency}">
-      <div class="field-group">
-        <label class="field-label">${t('form.lot.fmv_at_vest')} (${saleCurrency})</label>
-        <input type="number" class="input lot-fmv" min="0.0001" step="any" value="${lot.fmv || ''}" required>
-      </div>
-      <div class="field-group lot-rate-group">
-        <label class="field-label">${t('form.lot.mnb_rate')}</label>
-        <span class="lot-rate-status rate-ok"></span>
-        <a class="mnb-verify-link" href="https://www.mnb.hu/arfolyam-lekerdezes" target="_blank" rel="noopener noreferrer">${t('form.mnb_rate.verify_link')}</a>
-        <p class="liability-note">${t('form.mnb_rate.liability_note')}</p>
-        <input type="number" class="input lot-rate-override" min="0.0001" step="any" placeholder="${t('form.mnb_rate.override_label')}" value="${lot.mnbRate || ''}">
-      </div>
-      <div class="field-group">
-        <label class="field-label">${t('form.lot.cost_basis')}</label>
-        <span class="lot-cost-basis-value">—</span>
-      </div>
-    </div>
-    <button type="button" class="btn btn-ghost btn-sm lot-remove-btn">${t('form.lot.remove_btn')}</button>
-  `;
+  // Build lot row with DOM methods — never interpolate user/localStorage data
+  // into innerHTML. el.value = is always XSS-safe; value="${...}" in innerHTML is not.
+  const fields = document.createElement('div');
+  fields.className = 'lot-row-fields';
+
+  // Vest date
+  const dateGroup = document.createElement('div');
+  dateGroup.className = 'field-group';
+  const dateLabel = document.createElement('label');
+  dateLabel.className = 'field-label';
+  dateLabel.textContent = t('form.lot.vest_date');
+  const dateInput = document.createElement('input');
+  dateInput.type = 'date';
+  dateInput.className = 'input lot-vest-date';
+  dateInput.required = true;
+  dateInput.value = lot.vestDate;
+  dateGroup.appendChild(dateLabel);
+  dateGroup.appendChild(dateInput);
+  fields.appendChild(dateGroup);
+
+  // Quantity
+  const qtyGroup = document.createElement('div');
+  qtyGroup.className = 'field-group';
+  const qtyLabel = document.createElement('label');
+  qtyLabel.className = 'field-label';
+  qtyLabel.textContent = t('form.lot.quantity');
+  const qtyInput = document.createElement('input');
+  qtyInput.type = 'number';
+  qtyInput.className = 'input lot-quantity';
+  qtyInput.min = '0.0001';
+  qtyInput.step = 'any';
+  qtyInput.required = true;
+  qtyInput.value = lot.quantity || '';
+  qtyGroup.appendChild(qtyLabel);
+  qtyGroup.appendChild(qtyInput);
+  fields.appendChild(qtyGroup);
+
+  // Hidden currency (saleCurrency is enum-validated by ledger restore())
+  const currencyHidden = document.createElement('input');
+  currencyHidden.type = 'hidden';
+  currencyHidden.className = 'lot-currency';
+  currencyHidden.value = saleCurrency;
+  fields.appendChild(currencyHidden);
+
+  // FMV
+  const fmvGroup = document.createElement('div');
+  fmvGroup.className = 'field-group';
+  const fmvLabel = document.createElement('label');
+  fmvLabel.className = 'field-label';
+  fmvLabel.textContent = `${t('form.lot.fmv_at_vest')} (${saleCurrency})`;
+  const fmvInput = document.createElement('input');
+  fmvInput.type = 'number';
+  fmvInput.className = 'input lot-fmv';
+  fmvInput.min = '0.0001';
+  fmvInput.step = 'any';
+  fmvInput.required = true;
+  fmvInput.value = lot.fmv || '';
+  fmvGroup.appendChild(fmvLabel);
+  fmvGroup.appendChild(fmvInput);
+  fields.appendChild(fmvGroup);
+
+  // MNB rate
+  const rateGroup = document.createElement('div');
+  rateGroup.className = 'field-group lot-rate-group';
+  const rateLabel = document.createElement('label');
+  rateLabel.className = 'field-label';
+  rateLabel.textContent = t('form.lot.mnb_rate');
+  const rateStatus = document.createElement('span');
+  rateStatus.className = 'lot-rate-status rate-ok';
+  const rateLink = document.createElement('a');
+  rateLink.className = 'mnb-verify-link';
+  rateLink.href = 'https://www.mnb.hu/arfolyam-lekerdezes';
+  rateLink.target = '_blank';
+  rateLink.rel = 'noopener noreferrer';
+  rateLink.textContent = t('form.mnb_rate.verify_link');
+  const rateNote = document.createElement('p');
+  rateNote.className = 'liability-note';
+  rateNote.textContent = t('form.mnb_rate.liability_note');
+  const rateOverride = document.createElement('input');
+  rateOverride.type = 'number';
+  rateOverride.className = 'input lot-rate-override';
+  rateOverride.min = '0.0001';
+  rateOverride.step = 'any';
+  rateOverride.placeholder = t('form.mnb_rate.override_label');
+  rateOverride.value = lot.mnbRate || '';
+  rateGroup.appendChild(rateLabel);
+  rateGroup.appendChild(rateStatus);
+  rateGroup.appendChild(rateLink);
+  rateGroup.appendChild(rateNote);
+  rateGroup.appendChild(rateOverride);
+  fields.appendChild(rateGroup);
+
+  // Cost basis display
+  const basisGroup = document.createElement('div');
+  basisGroup.className = 'field-group';
+  const basisLabel = document.createElement('label');
+  basisLabel.className = 'field-label';
+  basisLabel.textContent = t('form.lot.cost_basis');
+  const basisValue = document.createElement('span');
+  basisValue.className = 'lot-cost-basis-value';
+  basisValue.textContent = '—';
+  basisGroup.appendChild(basisLabel);
+  basisGroup.appendChild(basisValue);
+  fields.appendChild(basisGroup);
+
+  row.appendChild(fields);
+
+  // Remove button
+  const removeBtn = document.createElement('button');
+  removeBtn.type = 'button';
+  removeBtn.className = 'btn btn-ghost btn-sm lot-remove-btn';
+  removeBtn.textContent = t('form.lot.remove_btn');
+  row.appendChild(removeBtn);
 
   // Wire: vest date change → fetch MNB rate
   const vestDateInput = row.querySelector('.lot-vest-date');
