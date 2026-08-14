@@ -243,10 +243,12 @@ function buildEszjaTable(year, rows) {
     const copyCell = document.createElement('td');
     copyCell.appendChild(makeCopyBtn(row.copy_text));
 
-    tr.innerHTML = `
-      <td>${row.row_id}</td>
-      <td>${row.form}</td>
-    `;
+    const rowIdCell = document.createElement('td');
+    rowIdCell.textContent = row.row_id;
+    const formCell = document.createElement('td');
+    formCell.textContent = row.form;
+    tr.appendChild(rowIdCell);
+    tr.appendChild(formCell);
     tr.appendChild(descCell);
     tr.appendChild(amtCell);
     tr.appendChild(copyCell);

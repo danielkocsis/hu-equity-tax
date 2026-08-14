@@ -12,6 +12,7 @@
 import { getAll, remove as ledgerRemove } from '../ledger.js';
 import { calculateEvent } from '../tax-engine.js';
 import { t } from '../i18n.js';
+import { escapeHtml } from '../utils.js';
 
 /** @type {Object|null} Cached tax rules per year */
 const rulesCache = {};
@@ -153,10 +154,10 @@ async function render(mount) {
 
       const tr = document.createElement('tr');
       tr.innerHTML = `
-        <td>${tx.date ?? ''}</td>
-        <td>${typeLabel(tx.type)}</td>
-        <td>${countryLabel(tx.source_country)}</td>
-        <td>${tx.currency ?? ''}</td>
+        <td>${escapeHtml(tx.date)}</td>
+        <td>${escapeHtml(typeLabel(tx.type))}</td>
+        <td>${escapeHtml(countryLabel(tx.source_country))}</td>
+        <td>${escapeHtml(tx.currency)}</td>
         <td class="num">${(tx.gross_foreign_amount ?? 0).toLocaleString('hu-HU', { maximumFractionDigits: 4 })}</td>
         <td class="num">${(tx.mnb_rate_used ?? 0).toLocaleString('hu-HU', { maximumFractionDigits: 4 })}</td>
         <td class="num">${huf(tx.gross_huf ?? 0)}</td>

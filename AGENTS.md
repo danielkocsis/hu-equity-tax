@@ -8,7 +8,7 @@
 
 ## Project in one sentence
 
-A free, 100% client-side static SPA (GitHub Pages) that helps Hungarian tax subjects calculate and self-declare SZJA and SZOCHO on equity compensation received from a foreign "kifizető", guides quarterly advance payments, and supports self-audit (önellenőrzés) for closed years.
+A free, 100% client-side static SPA (Vercel) that helps Hungarian tax subjects calculate and self-declare SZJA and SZOCHO on equity compensation received from a foreign \"kifizető\", guides quarterly advance payments, and supports self-audit (önellenőrzés) for closed years.
 
 ---
 
@@ -50,7 +50,8 @@ A free, 100% client-side static SPA (GitHub Pages) that helps Hungarian tax subj
 | **No GPL libraries** | Do not introduce any GPL or LGPL licensed library. |
 | **No paid APIs** | All external data sources must be free and key-free at runtime. |
 | **Module format** | ES Modules (`type="module"`). No CommonJS. No `window.*` pollution. |
-| **No build step** | The app must deploy by copying the repo to GitHub Pages as-is. No compilation required. |
+| **No build step** | The app deploys as-is to Vercel (static site, no compilation required). |
+| **Serverless API** | `api/stock.js` is a Vercel serverless function (Node 20, built-in `fetch()` only). Zero npm deps. No `require()`. |
 
 ---
 
@@ -72,7 +73,7 @@ hu-equity-tax/
 │   ├── self-audit.js             # Önellenőrzés delta + késedelmi kamat estimator
 │   ├── eszja-mapper.js           # Maps aggregated results → eSZJA row objects
 │   ├── payment-guide.js          # NAV payment card generator
-│   ├── stock-lookup.js           # Yahoo Finance unofficial API price hint (user-triggered only)
+│   ├── stock-lookup.js           # Yahoo Finance price hint via /api/stock proxy (user-triggered only)
 │   └── ui/
 │       ├── transaction-form.js   # Main event input form
 │       ├── lot-form.js           # Lot sub-form (nested in SHARE_SALE)
@@ -88,10 +89,13 @@ hu-equity-tax/
 ├── locales/
 │   ├── en.json                   # All English UI strings
 │   └── hu.json                   # All Hungarian UI strings
+├── api/
+│   └── stock.js                  # Vercel serverless function: Yahoo Finance proxy (no CORS)
+├── vercel.json                   # Vercel config: SPA catch-all rewrite
 ├── .github/
 │   └── workflows/
 │       ├── mnb-fx-fetch.yml      # Daily cron: fetch MNB SOAP → update data/mnb_fx_YYYY.json
-│       └── deploy.yml            # On push to main: deploy to gh-pages branch
+│       └── ci.yml                # On push/PR: run check.py + arithmetic.js
 ├── AGENTS.md                     # This file
 ├── SPEC.md                       # Product specification
 ├── TAX-ANALYSIS.md               # Authoritative tax rule analysis (primary source)
@@ -120,7 +124,7 @@ hu-equity-tax/
   ```
 - **i18n:** Every user-visible string must come from `t(key)`. Never hardcode visible strings in JS or HTML. HTML elements carry `data-i18n="dot.separated.key"`.
 - **Error handling:** Never silently swallow errors. Surface a bilingual inline warning in the UI when data fetches fail. Never use `alert()`.
-- **Privacy:** Zero external calls at runtime except: `data/mnb_fx_YYYY.json` (same-origin static asset) and Yahoo Finance stock price hint (user-triggered only, never automatic).
+- **Privacy:** Zero external calls at runtime except: `data/mnb_fx_YYYY.json` (same-origin static asset) and `/api/stock` (same-origin Vercel proxy for Yahoo Finance price hint — user-triggered only, never automatic).
 
 ---
 
@@ -302,7 +306,10 @@ hu-equity-tax/
 
 ### `stock-lookup.js`
 - `lookupPrice(ticker, dateStr)` → `{ price, currency, source_date, is_exact }` or throws.
-- Endpoint: `https://query2.finance.yahoo.com/v8/finance/chart/{ticker}?interval=1d&period1={ts_minus_4days}&period2={ts_plus_4days}` — falls back to `query1` host on 429/error. Uses a ±4 day window and picks the closest trading day by minimum timestamp delta.
+- **Production (Vercel):** calls `/api/stock?ticker=…&date=…` (same-origin, no CORS). The serverless function handles Yahoo Finance fetch server-side.
+- **Local dev (`file://`):** attempts direct Yahoo Finance endpoints as a best-effort fallback (typically CORS-blocked; manual entry expected).
+- Ticker validation (enforced in `api/stock.js`): `/^[A-Z0-9.\-^=]{1,12}$/i` — returns `400` if invalid.
+- Proxy logic: `query2.finance.yahoo.com/v8/finance/chart/{ticker}` with ±4-day window, closest trading day by minimum timestamp delta; falls back to `query1` on failure.
 - **Never called automatically.** Only on explicit user button press.
 - **Every resolved price must be displayed with:**
   1. The exact date the price was sourced from
