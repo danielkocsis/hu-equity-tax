@@ -104,7 +104,7 @@ Employers typically provide only generic guidance. Hiring an accountant is costl
 
 **Stock FMV hint:**
 - "Look up price" button on FMV field — user-triggered only, never automatic
-- Yahoo Finance unofficial API; result pre-fills the field but is never locked
+- Yahoo Finance via server-side proxy (`/api/stock`); result pre-fills the field but is never locked
 - "Verify on Yahoo Finance →" link always shown alongside the result
 - Bilingual liability note always displayed: *"Kényelmi funkció, nem hivatalos adat. A bróker igazolása az irányadó."*
 - Broker statement is always the authoritative FMV source
@@ -344,7 +344,7 @@ All features in §4.1.
 | SZOCHO rate history | Confirmed with mid-year splits: 19.5% (H1 2019), 17.5% (H2 2019–H1 2020), 15.5% (H2 2020–2021), 13% (2022+). Date-range arrays required for 2019 and 2020. See TAX-ANALYSIS §5.1. |
 | Min monthly wage 2026 | Confirmed: 317,000 HUF (minimálbér). Source: 451/2024 Korm. rendelet. |
 | eSZJA rows across all years | Confirmed identical across 21–25SZJA (sor 19, 172, 182). Verify 26SZJA when published (Jan 2027). |
-| Yahoo Finance unofficial API breakage | Graceful fallback to manual + direct URL; feature is hint only |
+| Yahoo Finance unofficial API breakage | Mitigated by server-side proxy (`/api/stock`); local `file://` fallback retains direct call for dev only; graceful fallback to manual + direct URL |
 | MNB SOAP API changes | GitHub Action is isolated; fallback to manual FX entry |
 | Legal liability | CC BY-NC license; prominent bilingual disclaimer; no data leaves the device |
 

@@ -305,6 +305,75 @@ if section_passed(baseline):
     ok(str(len(REQUIRED_I18N)) + " required data-i18n keys present, no CDN refs")
 
 # ---------------------------------------------------------------------------
+# 8. Vercel artefact constraints
+# ---------------------------------------------------------------------------
+
+section("8 . Vercel artefact constraints")
+
+baseline = failures_before()
+
+# --- api/stock.js ---
+api_file = ROOT / "api" / "stock.js"
+
+if not api_file.exists():
+    fail("api/stock.js: file not found")
+else:
+    api_src = api_file.read_text(encoding="utf-8")
+
+    api_has_require = any(
+        re.search(r"\brequire\s*\(", line)
+        for line in api_src.splitlines()
+        if not line.strip().startswith("//") and not line.strip().startswith("*")
+    )
+    if api_has_require:
+        fail("api/stock.js: uses require() — only Node built-ins allowed (no npm packages)")
+    else:
+        ok("api/stock.js: no require() calls")
+
+    if "export default" not in api_src:
+        fail("api/stock.js: missing 'export default' (Vercel function contract)")
+    else:
+        ok("api/stock.js: export default present")
+
+    if not re.search(r"TICKER_RE", api_src):
+        fail("api/stock.js: missing TICKER_RE ticker validation (security guard)")
+    else:
+        ok("api/stock.js: TICKER_RE ticker validation present")
+
+    if not re.search(r"OPTIONS", api_src):
+        fail("api/stock.js: missing OPTIONS preflight handling")
+    else:
+        ok("api/stock.js: OPTIONS preflight handling present")
+
+# --- vercel.json ---
+vercel_file = ROOT / "vercel.json"
+
+if not vercel_file.exists():
+    fail("vercel.json: file not found")
+else:
+    try:
+        vercel_cfg = json.loads(vercel_file.read_text(encoding="utf-8"))
+        ok("vercel.json: valid JSON")
+
+        # Check that the SPA catch-all rewrite is present
+        rewrites = vercel_cfg.get("rewrites", [])
+        catchall_found = any(
+            r.get("source", "") == "/((?!api/).*)" and
+            r.get("destination", "") == "/index.html"
+            for r in rewrites
+        )
+        if not catchall_found:
+            fail("vercel.json: missing SPA catch-all rewrite '/((?!api/).*)'  → '/index.html'")
+        else:
+            ok("vercel.json: SPA catch-all rewrite present")
+
+    except json.JSONDecodeError as e:
+        fail("vercel.json: invalid JSON — " + str(e))
+
+if section_passed(baseline):
+    ok("Vercel artefacts — all constraints satisfied")
+
+# ---------------------------------------------------------------------------
 # Summary
 # ---------------------------------------------------------------------------
 

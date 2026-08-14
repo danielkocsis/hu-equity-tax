@@ -3,21 +3,21 @@
  * AGENTS.md: NEVER call automatically. Only on explicit user button press.
  * Every resolved price must be displayed with a verify link and liability note.
  *
- * ⚠️  BROWSER CORS CONSTRAINT
- * Yahoo Finance query endpoints do not emit Access-Control-Allow-Origin headers.
- * All four Yahoo hosts (query1/query2 × v8/chart + v7/spark) return data from
- * Node/curl but are blocked by the browser before the request is even sent.
- * Public CORS proxies (corsproxy.io, allorigins.win) also block Yahoo Finance.
- *
- * This module makes a best-effort attempt and throws when all paths fail, so
- * the UI can surface the direct Yahoo Finance link for manual lookup.
- *
- * A server-side solution (GitHub Action pre-fetching known tickers) would be
- * needed for reliable programmatic price retrieval in a zero-server SPA.
+ * Production (Vercel): delegates to /api/stock serverless proxy — no CORS issue.
+ * Local dev (file://): attempts direct Yahoo Finance endpoints as a best-effort
+ *   fallback; typically CORS-blocked by the browser, so manual entry is expected.
  */
 
+/** True when running on Vercel (or any http/https origin); false for local file:// dev. */
+const USE_PROXY = window.location.protocol !== 'file:';
+
+// ── Local dev fallback ──────────────────────────────────────────────────────
+// Used only when USE_PROXY is false (file:// protocol).
+// Yahoo Finance CORS blocks these in most browser contexts; they are retained
+// solely as a best-effort convenience for local development.
+
 const ENDPOINTS = [
-  // v8/chart — full date control; blocked by CORS in browser, kept for forward-compat
+  // v8/chart — full date control
   (ticker, p1, p2) =>
     `https://query2.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(ticker)}` +
     `?interval=1d&period1=${p1}&period2=${p2}&includePrePost=false`,
@@ -28,101 +28,111 @@ const ENDPOINTS = [
   (ticker, _p1, _p2, range) =>
     `https://query1.finance.yahoo.com/v7/finance/spark` +
     `?symbols=${encodeURIComponent(ticker)}&range=${range}&interval=1d`,
-  (ticker, _p1, _p2, range) =>
-    `https://query2.finance.yahoo.com/v7/finance/spark` +
-    `?symbols=${encodeURIComponent(ticker)}&range=${range}&interval=1d`,
 ];
 
 /**
- * Picks the closest trading day to targetTs from parallel timestamp/close arrays.
- * @param {number[]} timestamps
- * @param {number[]} closes
- * @param {number}   targetTs  - Unix seconds
- * @param {string}   dateStr
- * @returns {{ price: number, source_date: string, is_exact: boolean } | null}
+ * Extracts { price, currency, source_date, is_exact } from a Yahoo Finance
+ * v8/chart JSON response, picking the trading day closest to targetTs.
+ * @param {object} data
+ * @param {number} targetTs  Unix timestamp of the requested date (midnight UTC)
+ * @param {string} dateStr   Requested date string YYYY-MM-DD
+ * @returns {{ price: number, currency: string, source_date: string, is_exact: boolean }|null}
  */
-function pickClosest(timestamps, closes, targetTs, dateStr) {
-  let bestIdx = -1;
-  let bestDelta = Infinity;
+function extractClosest(data, targetTs, dateStr) {
+  const result = data?.chart?.result?.[0];
+  if (!result) return null;
+
+  const timestamps = result.timestamp ?? [];
+  const closes     = result.indicators?.quote?.[0]?.close ?? [];
+  const currency   = result.meta?.currency ?? 'USD';
+
+  if (timestamps.length === 0) return null;
+
+  let bestIdx  = -1;
+  let bestDiff = Infinity;
+
   for (let i = 0; i < timestamps.length; i++) {
     if (closes[i] == null) continue;
-    const delta = Math.abs(timestamps[i] - targetTs);
-    if (delta < bestDelta) { bestDelta = delta; bestIdx = i; }
+    const diff = Math.abs(timestamps[i] - targetTs);
+    if (diff < bestDiff) {
+      bestDiff = diff;
+      bestIdx  = i;
+    }
   }
+
   if (bestIdx === -1) return null;
+
+  const price       = closes[bestIdx];
   const source_date = new Date(timestamps[bestIdx] * 1000).toISOString().slice(0, 10);
-  return {
-    price: Math.round(closes[bestIdx] * 10000) / 10000,
-    source_date,
-    is_exact: source_date === dateStr,
-  };
+  const is_exact    = source_date === dateStr;
+
+  return { price, currency, source_date, is_exact };
 }
 
 /**
- * Looks up the historical closing price for a ticker on or near a given date.
- *
- * @param {string} ticker  - Yahoo Finance ticker (e.g. 'TSCO.L', 'MSFT', 'AAPL')
- * @param {string} dateStr - ISO date string YYYY-MM-DD
+ * Direct Yahoo Finance fetch for local file:// development fallback.
+ * @param {string} ticker
+ * @param {string} dateStr
  * @returns {Promise<{ price: number, currency: string, source_date: string, is_exact: boolean }>}
- * @throws {Error} When all endpoints fail (typically CORS-blocked in browser)
  */
-export async function lookupPrice(ticker, dateStr) {
-  const targetTs = Math.floor(new Date(dateStr + 'T00:00:00Z').getTime() / 1000);
-  const period1  = targetTs - 4 * 86400;
-  const period2  = targetTs + 4 * 86400;
+async function lookupDirect(ticker, dateStr) {
+  const yahooUrl = `https://finance.yahoo.com/quote/${encodeURIComponent(ticker)}/history/`;
 
-  const daysAgo = Math.ceil((Date.now() / 1000 - targetTs) / 86400);
-  const range =
-    daysAgo <= 5    ? '5d'  :
-    daysAgo <= 30   ? '1mo' :
-    daysAgo <= 90   ? '3mo' :
-    daysAgo <= 180  ? '6mo' :
-    daysAgo <= 365  ? '1y'  :
-    daysAgo <= 730  ? '2y'  :
-    daysAgo <= 1825 ? '5y'  : 'max';
+  const date     = new Date(dateStr + 'T00:00:00Z');
+  const targetTs = Math.floor(date.getTime() / 1000);
+  const p1       = targetTs - 4 * 24 * 3600;
+  const p2       = targetTs + 4 * 24 * 3600;
+  const range    = '5d';
 
   for (const buildUrl of ENDPOINTS) {
-    const url = buildUrl(ticker, period1, period2, range);
+    const url        = buildUrl(ticker, p1, p2, range);
     const controller = new AbortController();
-    const tid = setTimeout(() => controller.abort(), 8000);
-    let data = null;
+    const tid        = setTimeout(() => controller.abort(), 10_000);
 
     try {
-      const resp = await fetch(url, {
-        signal: controller.signal,
-        headers: { 'Accept': 'application/json' },
-      });
-      if (resp.ok) data = await resp.json();
+      const resp = await fetch(url, { signal: controller.signal });
+      if (!resp.ok) continue;
+
+      const data   = await resp.json();
+      const result = extractClosest(data, targetTs, dateStr);
+      if (result) return result;
     } catch {
       // CORS block or network error — try next endpoint
     } finally {
       clearTimeout(tid);
     }
-
-    if (!data) continue;
-
-    // v8/chart shape: data.chart.result[0]
-    const chartResult = data?.chart?.result?.[0];
-    if (chartResult) {
-      const found = pickClosest(
-        chartResult.timestamp ?? [],
-        chartResult.indicators?.quote?.[0]?.close ?? [],
-        targetTs, dateStr,
-      );
-      if (found) return { ...found, currency: chartResult.meta?.currency ?? 'USD' };
-    }
-
-    // v7/spark shape: data.spark.result[0].response[0]
-    const sparkResult = data?.spark?.result?.[0]?.response?.[0];
-    if (sparkResult) {
-      const found = pickClosest(
-        sparkResult.timestamp ?? [],
-        sparkResult.indicators?.quote?.[0]?.close ?? [],
-        targetTs, dateStr,
-      );
-      if (found) return { ...found, currency: sparkResult.meta?.currency ?? 'USD' };
-    }
   }
 
   throw new Error('CORS_BLOCKED');
+}
+
+// ── Public API ──────────────────────────────────────────────────────────────
+
+/**
+ * Looks up the historical closing price for a ticker on or near a given date.
+ *
+ * In production (Vercel), calls the /api/stock serverless proxy.
+ * In local file:// dev, attempts direct Yahoo Finance endpoints (likely CORS-blocked).
+ *
+ * @param {string} ticker  - Yahoo Finance ticker (e.g. 'TSCO.L', 'MSFT', 'AAPL')
+ * @param {string} dateStr - ISO date string YYYY-MM-DD
+ * @returns {Promise<{ price: number, currency: string, source_date: string, is_exact: boolean }>}
+ * @throws {Error} On network failure or no data found
+ */
+export async function lookupPrice(ticker, dateStr) {
+  if (USE_PROXY) {
+    // Production path: serverless proxy handles Yahoo fetch server-side
+    const url  = `/api/stock?ticker=${encodeURIComponent(ticker)}&date=${encodeURIComponent(dateStr)}`;
+    const resp = await fetch(url);
+    const data = await resp.json();
+
+    if (!resp.ok) {
+      throw new Error(data.error ?? 'Stock lookup failed');
+    }
+
+    return data;
+  }
+
+  // Local file:// dev fallback — direct Yahoo attempt (usually CORS-blocked)
+  return lookupDirect(ticker, dateStr);
 }
