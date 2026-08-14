@@ -7,7 +7,7 @@
  * UI requirements (enforced by calling component):
  *  1. Show the resolved rate value
  *  2. Show the exact date_used (especially if fallback)
- *  3. Show "Verify on MNB →" link to https://www.mnb.hu/arfolyamok (target="_blank", rel="noopener")
+ *  3. Show "Verify on MNB →" link to https://www.mnb.hu/arfolyam-lekerdezes (target="_blank", rel="noopener")
  *  4. Show the bilingual liability note
  *  5. Always show an override input — never hide or collapse it
  */

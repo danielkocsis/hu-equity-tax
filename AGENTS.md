@@ -22,7 +22,7 @@ A free, 100% client-side static SPA (GitHub Pages) that helps Hungarian tax subj
    - NAV Pótlékszámítás (késedelmi + önellenőrzési pótlék): `https://nav.gov.hu/ugyfeliranytu/eljarasi_kerdesek/Kalkulatorok/potlekszamitas`
 
 3. **Every auto-resolved external value (MNB FX rate, Yahoo Finance stock price) must show a verification link and a bilingual liability note.** The user is responsible for the correct value. The override input is always visible and editable.
-   - MNB verify link: `https://www.mnb.hu/arfolyamok`
+   - MNB verify link: `https://www.mnb.hu/arfolyam-lekerdezes`
    - Yahoo Finance verify link: `https://finance.yahoo.com/quote/{TICKER}/history/`
 
 ---
@@ -276,7 +276,7 @@ hu-equity-tax/
 - `setManualRate(currency, dateStr, rate)` — stores a user-supplied override; takes precedence over file lookup.
 - **Every resolved rate must be displayed with:**
   1. The exact date whose rate was used (especially if fallback to a prior day)
-  2. A **"Verify on MNB website →"** link to `https://www.mnb.hu/arfolyamok` opening in a new tab
+  2. A **"Verify on MNB website →"** link to `https://www.mnb.hu/arfolyam-lekerdezes` opening in a new tab
   3. A short note: *"Ez egy kényelmi funkció. A helyes árfolyam megadásáért Ön felel. / This is a convenience feature. You are responsible for entering the correct rate."*
   4. An always-visible manual override input — never hide or collapse it
 
@@ -302,7 +302,7 @@ hu-equity-tax/
 
 ### `stock-lookup.js`
 - `lookupPrice(ticker, dateStr)` → `{ price, currency, source_date, is_exact }` or throws.
-- Endpoint: `https://query1.finance.yahoo.com/v8/finance/chart/{ticker}?interval=1d&period1={ts}&period2={ts_plus_3days}`
+- Endpoint: `https://query2.finance.yahoo.com/v8/finance/chart/{ticker}?interval=1d&period1={ts_minus_4days}&period2={ts_plus_4days}` — falls back to `query1` host on 429/error. Uses a ±4 day window and picks the closest trading day by minimum timestamp delta.
 - **Never called automatically.** Only on explicit user button press.
 - **Every resolved price must be displayed with:**
   1. The exact date the price was sourced from
@@ -322,7 +322,7 @@ hu-equity-tax/
 - **Output:** `data/mnb_fx_YYYY.json` → `{ "YYYY-MM-DD": { "USD": 370.50, "EUR": 398.20, "GBP": 468.10 } }`
 - **Range:** 2016–present. Years 2016–(current−1) are committed as complete static files. Current year file is appended daily.
 - **Stale fallback:** `fx-engine.js` walks back up to 7 calendar days. Always exposes `date_used` and `is_fallback` in the result. UI always shows which date's rate was used.
-- **Pre-2016:** `getRate()` returns `{ requires_manual: true }`. UI shows MNB historical lookup link: `https://www.mnb.hu/arfolyamok`.
+- **Pre-2016:** `getRate()` returns `{ requires_manual: true }`. UI shows MNB historical lookup link: `https://www.mnb.hu/arfolyam-lekerdezes`.
 
 ---
 

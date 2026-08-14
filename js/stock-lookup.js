@@ -1,82 +1,128 @@
 /**
- * Stock lookup module — Yahoo Finance unofficial API price hint.
- * AGENTS.md: NEVER call automatically. Only on explicit user action.
- * Every resolved price must be shown as a hint with a verify link and liability note.
+ * Stock lookup module — Yahoo Finance price hint (user-triggered only).
+ * AGENTS.md: NEVER call automatically. Only on explicit user button press.
+ * Every resolved price must be displayed with a verify link and liability note.
+ *
+ * ⚠️  BROWSER CORS CONSTRAINT
+ * Yahoo Finance query endpoints do not emit Access-Control-Allow-Origin headers.
+ * All four Yahoo hosts (query1/query2 × v8/chart + v7/spark) return data from
+ * Node/curl but are blocked by the browser before the request is even sent.
+ * Public CORS proxies (corsproxy.io, allorigins.win) also block Yahoo Finance.
+ *
+ * This module makes a best-effort attempt and throws when all paths fail, so
+ * the UI can surface the direct Yahoo Finance link for manual lookup.
+ *
+ * A server-side solution (GitHub Action pre-fetching known tickers) would be
+ * needed for reliable programmatic price retrieval in a zero-server SPA.
  */
+
+const ENDPOINTS = [
+  // v8/chart — full date control; blocked by CORS in browser, kept for forward-compat
+  (ticker, p1, p2) =>
+    `https://query2.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(ticker)}` +
+    `?interval=1d&period1=${p1}&period2=${p2}&includePrePost=false`,
+  (ticker, p1, p2) =>
+    `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(ticker)}` +
+    `?interval=1d&period1=${p1}&period2=${p2}&includePrePost=false`,
+  // v7/spark — broader CORS support observed in some browser contexts
+  (ticker, _p1, _p2, range) =>
+    `https://query1.finance.yahoo.com/v7/finance/spark` +
+    `?symbols=${encodeURIComponent(ticker)}&range=${range}&interval=1d`,
+  (ticker, _p1, _p2, range) =>
+    `https://query2.finance.yahoo.com/v7/finance/spark` +
+    `?symbols=${encodeURIComponent(ticker)}&range=${range}&interval=1d`,
+];
+
+/**
+ * Picks the closest trading day to targetTs from parallel timestamp/close arrays.
+ * @param {number[]} timestamps
+ * @param {number[]} closes
+ * @param {number}   targetTs  - Unix seconds
+ * @param {string}   dateStr
+ * @returns {{ price: number, source_date: string, is_exact: boolean } | null}
+ */
+function pickClosest(timestamps, closes, targetTs, dateStr) {
+  let bestIdx = -1;
+  let bestDelta = Infinity;
+  for (let i = 0; i < timestamps.length; i++) {
+    if (closes[i] == null) continue;
+    const delta = Math.abs(timestamps[i] - targetTs);
+    if (delta < bestDelta) { bestDelta = delta; bestIdx = i; }
+  }
+  if (bestIdx === -1) return null;
+  const source_date = new Date(timestamps[bestIdx] * 1000).toISOString().slice(0, 10);
+  return {
+    price: Math.round(closes[bestIdx] * 10000) / 10000,
+    source_date,
+    is_exact: source_date === dateStr,
+  };
+}
 
 /**
  * Looks up the historical closing price for a ticker on or near a given date.
- * Uses Yahoo Finance unofficial API — convenience only, not authoritative.
  *
- * @param {string} ticker - Stock ticker symbol (e.g. 'TSCO.L', 'MSFT')
- * @param {string} dateStr - ISO date string (YYYY-MM-DD)
- * @returns {Promise<{price: number, currency: string, source_date: string, is_exact: boolean}>}
- * @throws {Error} On network failure or invalid ticker; message includes Yahoo Finance direct URL
+ * @param {string} ticker  - Yahoo Finance ticker (e.g. 'TSCO.L', 'MSFT', 'AAPL')
+ * @param {string} dateStr - ISO date string YYYY-MM-DD
+ * @returns {Promise<{ price: number, currency: string, source_date: string, is_exact: boolean }>}
+ * @throws {Error} When all endpoints fail (typically CORS-blocked in browser)
  */
 export async function lookupPrice(ticker, dateStr) {
-  const yahooUrl = `https://finance.yahoo.com/quote/${encodeURIComponent(ticker)}/history/`;
+  const targetTs = Math.floor(new Date(dateStr + 'T00:00:00Z').getTime() / 1000);
+  const period1  = targetTs - 4 * 86400;
+  const period2  = targetTs + 4 * 86400;
 
-  const date = new Date(dateStr + 'T00:00:00Z');
-  const period1 = Math.floor(date.getTime() / 1000);
-  // Look ahead 3 days to handle weekends/holidays
-  const period2 = period1 + 3 * 24 * 3600;
+  const daysAgo = Math.ceil((Date.now() / 1000 - targetTs) / 86400);
+  const range =
+    daysAgo <= 5    ? '5d'  :
+    daysAgo <= 30   ? '1mo' :
+    daysAgo <= 90   ? '3mo' :
+    daysAgo <= 180  ? '6mo' :
+    daysAgo <= 365  ? '1y'  :
+    daysAgo <= 730  ? '2y'  :
+    daysAgo <= 1825 ? '5y'  : 'max';
 
-  const apiUrl = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(ticker)}?interval=1d&period1=${period1}&period2=${period2}`;
+  for (const buildUrl of ENDPOINTS) {
+    const url = buildUrl(ticker, period1, period2, range);
+    const controller = new AbortController();
+    const tid = setTimeout(() => controller.abort(), 8000);
+    let data = null;
 
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 10_000);
+    try {
+      const resp = await fetch(url, {
+        signal: controller.signal,
+        headers: { 'Accept': 'application/json' },
+      });
+      if (resp.ok) data = await resp.json();
+    } catch {
+      // CORS block or network error — try next endpoint
+    } finally {
+      clearTimeout(tid);
+    }
 
-  let resp;
-  try {
-    resp = await fetch(apiUrl, { signal: controller.signal });
-  } catch (err) {
-    throw new Error(`[stock-lookup] Network error for ticker "${ticker}". Verify manually: ${yahooUrl}`);
-  } finally {
-    clearTimeout(timeoutId);
-  }
+    if (!data) continue;
 
-  if (!resp.ok) {
-    throw new Error(`[stock-lookup] Yahoo Finance returned ${resp.status} for ticker "${ticker}". Verify manually: ${yahooUrl}`);
-  }
+    // v8/chart shape: data.chart.result[0]
+    const chartResult = data?.chart?.result?.[0];
+    if (chartResult) {
+      const found = pickClosest(
+        chartResult.timestamp ?? [],
+        chartResult.indicators?.quote?.[0]?.close ?? [],
+        targetTs, dateStr,
+      );
+      if (found) return { ...found, currency: chartResult.meta?.currency ?? 'USD' };
+    }
 
-  let data;
-  try {
-    data = await resp.json();
-  } catch {
-    throw new Error(`[stock-lookup] Invalid JSON response for ticker "${ticker}". Verify manually: ${yahooUrl}`);
-  }
-
-  const result = data?.chart?.result?.[0];
-  if (!result) {
-    throw new Error(`[stock-lookup] No data returned for ticker "${ticker}". Verify manually: ${yahooUrl}`);
-  }
-
-  const timestamps = result.timestamp ?? [];
-  const closes = result.indicators?.quote?.[0]?.close ?? [];
-  const currency = result.meta?.currency ?? 'USD';
-
-  if (timestamps.length === 0 || closes.length === 0) {
-    throw new Error(`[stock-lookup] No price history found for ticker "${ticker}" around ${dateStr}. Verify manually: ${yahooUrl}`);
-  }
-
-  // Find the closest date on or after the requested date
-  let best_idx = 0;
-  for (let i = 0; i < timestamps.length; i++) {
-    if (closes[i] != null) {
-      best_idx = i;
-      break;
+    // v7/spark shape: data.spark.result[0].response[0]
+    const sparkResult = data?.spark?.result?.[0]?.response?.[0];
+    if (sparkResult) {
+      const found = pickClosest(
+        sparkResult.timestamp ?? [],
+        sparkResult.indicators?.quote?.[0]?.close ?? [],
+        targetTs, dateStr,
+      );
+      if (found) return { ...found, currency: sparkResult.meta?.currency ?? 'USD' };
     }
   }
 
-  const source_ts = timestamps[best_idx];
-  const source_date = new Date(source_ts * 1000).toISOString().slice(0, 10);
-  const price = closes[best_idx];
-
-  if (price == null) {
-    throw new Error(`[stock-lookup] No valid closing price for ticker "${ticker}" around ${dateStr}. Verify manually: ${yahooUrl}`);
-  }
-
-  const is_exact = source_date === dateStr;
-
-  return { price, currency, source_date, is_exact };
+  throw new Error('CORS_BLOCKED');
 }
